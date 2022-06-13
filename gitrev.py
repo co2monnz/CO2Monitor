@@ -19,10 +19,3 @@ ts = time.strftime('%Y%m%d%H%M%S')
 # if not clean append timestamp
 if clean != "":
   version += "-" + ts
-
-# print build flags
-print("'-DAPP_TAG=\"{0}\"'".format(tag))
-print("'-DAPP_VERSION=\"{0}\"'".format(version))
-print("'-DSRC_REVISION=\"{0}\"'".format(commit))
-print("'-DSRC_BRANCH=\"{0}\"'".format(branch))
-print("'-DBUILD_TIMESTAMP=\"{0}\"'".format(ts))
