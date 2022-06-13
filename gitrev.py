@@ -1,6 +1,11 @@
 import subprocess
 import time
 
+# Allow configuration of the release branch in forked repositories which may
+# not want to release from 'main' (which should track upstream directly) and
+# instead have a separate 'release' branch containing their merged changes.
+RELEASE_BRANCH='main'
+
 # get tag/base version
 version = tag = subprocess.check_output("git describe --tags --abbrev=0", shell=True).decode().strip()
 
@@ -9,8 +14,8 @@ commit = subprocess.check_output("git log --pretty=format:%h -n 1", shell=True).
 
 # get branch name
 branch = subprocess.check_output("git rev-parse --abbrev-ref HEAD", shell=True).decode().strip()
-# if not main branch append branch name
-if branch != "main":
+# if not release branch append branch name
+if branch != RELEASE_BRANCH:
   version += "-[" + branch + "]"
 
 # check if clean
