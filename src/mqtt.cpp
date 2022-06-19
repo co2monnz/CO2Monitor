@@ -198,6 +198,7 @@ namespace mqtt {
         return;
       }
       bool rebootRequired = false;
+      if (doc.containsKey("deviceId")) { config.deviceId = doc["deviceId"].as<int>(); rebootRequired = true; }
       if (doc.containsKey("altitude")) config.altitude = doc["altitude"].as<int>();
       if (doc.containsKey("yellowThreshold")) config.yellowThreshold = doc["yellowThreshold"].as<int>();
       if (doc.containsKey("redThreshold")) config.redThreshold = doc["redThreshold"].as<int>();
