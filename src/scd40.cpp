@@ -46,17 +46,6 @@ SCD40::SCD40(TwoWire* wire, Model* _model, updateMessageCallback_t _updateMessag
     }
   */
 
-  /*
-    uint16_t sensorStatus;
-    ESP_LOGD(TAG, "Performing sensor self test...");
-    if (checkError(scd40->performSelfTest(sensorStatus), "performSelfTest")) {
-      if (sensorStatus != 0) {
-        ESP_LOGW(TAG, "Self check error: %x", sensorStatus);
-        //      checkError(scd40->performFactoryReset(), "performFactoryReset");
-      }
-    }
-  */
-
   uint16_t serialNo[3];
   if (checkError(scd40->getSerialNumber(serialNo[0], serialNo[1], serialNo[2]), "getSerialNumber")) {
     ESP_LOGD(TAG, "SCD40 serial#: %x%x%x", serialNo[0], serialNo[1], serialNo[2]);
@@ -154,6 +143,48 @@ boolean SCD40::calibrateScd40ToReference(uint16_t co2Reference) {
     return false;
   }
   ESP_LOGD(TAG, "co2Reference: %u, frcCorrection %u", co2Reference, frcCorrection);
+  success = checkError(scd40->startPeriodicMeasurement(), "startPeriodicMeasurement");
+  I2C::giveMutex();
+  return success;
+}
+
+boolean SCD40::selfTest() {
+  if (!I2C::takeMutex(pdMS_TO_TICKS(1000))) return false;
+  boolean success = checkError(scd40->stopPeriodicMeasurement(), "stopPeriodicMeasurement");
+  if (!success) {
+    I2C::giveMutex();
+    ESP_LOGD(TAG, "failed to selfTest SCD40, could not stop measurements!");
+    return false;
+  }
+  uint16_t sensorStatus;
+  ESP_LOGD(TAG, "Performing sensor self test...");
+  if (checkError(scd40->performSelfTest(sensorStatus), "performSelfTest")) {
+    if (sensorStatus != 0) {
+      ESP_LOGW(TAG, "Self check error: %x", sensorStatus);
+    }
+  }
+  success = checkError(scd40->startPeriodicMeasurement(), "startPeriodicMeasurement");
+  I2C::giveMutex();
+  return success;
+}
+
+boolean SCD40::factoryReset() {
+  if (!I2C::takeMutex(pdMS_TO_TICKS(1000))) return false;
+  boolean success = checkError(scd40->stopPeriodicMeasurement(), "stopPeriodicMeasurement");
+  if (!success) {
+    I2C::giveMutex();
+    ESP_LOGD(TAG, "failed to factoryReset SCD40, could not stop measurements!");
+    return false;
+  }
+  uint16_t sensorStatus;
+  ESP_LOGD(TAG, "Performing SCD40 factory reset...");
+  //TODO: Debug - never returns...
+  if (!checkError(scd40->performFactoryReset(), "performFactoryReset")) {
+    ESP_LOGD(TAG, "Factory reset failed!");
+    I2C::giveMutex();
+    return false;
+  ESP_LOGD(TAG, "Factory reset complete");
+  }
   success = checkError(scd40->startPeriodicMeasurement(), "startPeriodicMeasurement");
   I2C::giveMutex();
   return success;

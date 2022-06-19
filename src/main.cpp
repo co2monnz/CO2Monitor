@@ -79,6 +79,16 @@ void calibrateCo2SensorCallback(uint16_t co2Reference) {
   if (I2C::scd40Present() && scd40) scd40->calibrateScd40ToReference(co2Reference);
 }
 
+void selfTestCo2SensorCallback() {
+  if (I2C::scd30Present() && scd30) scd30->selfTest();
+  if (I2C::scd40Present() && scd40) scd40->selfTest();
+}
+
+void factoryResetCo2SensorCallback() {
+  if (I2C::scd30Present() && scd30) scd30->factoryReset();
+  if (I2C::scd40Present() && scd40) scd40->factoryReset();
+}
+
 void setTemperatureOffsetCallback(float temperatureOffset) {
   if (I2C::scd30Present() && scd30) scd30->setTemperatureOffset(temperatureOffset);
   if (I2C::scd40Present() && scd40) scd40->setTemperatureOffset(temperatureOffset);
@@ -176,6 +186,8 @@ void setup() {
   mqtt::setupMqtt(
     model,
     calibrateCo2SensorCallback,
+    selfTestCo2SensorCallback,
+    factoryResetCo2SensorCallback,
     setTemperatureOffsetCallback,
     getTemperatureOffsetCallback,
     getSPS30AutoCleanInterval,

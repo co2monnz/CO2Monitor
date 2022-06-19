@@ -16,6 +16,8 @@ public:
 
   TaskHandle_t start(const char* name, uint32_t stackSize, UBaseType_t priority, BaseType_t core);
   boolean calibrateScd30ToReference(uint16_t co2Reference);
+  boolean selfTest();
+  boolean factoryReset();
   boolean setTemperatureOffset(float temperatureOffset);
   float getTemperatureOffset();
 

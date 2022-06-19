@@ -37,6 +37,8 @@ namespace mqtt {
   Model* model;
 
   calibrateCo2SensorCallback_t calibrateCo2SensorCallback;
+  selfTestCo2SensorCallback_t selfTestCo2SensorCallback;
+  factoryResetCo2SensorCallback_t factoryResetCo2SensorCallback;
   setTemperatureOffsetCallback_t setTemperatureOffsetCallback;
   getTemperatureOffsetCallback_t getTemperatureOffsetCallback;
   getSPS30AutoCleanIntervalCallback_t getSPS30AutoCleanIntervalCallback;
@@ -159,9 +161,11 @@ namespace mqtt {
 
     sprintf(buf, "%s/%u/down/", config.mqttTopic, config.deviceId);
     int16_t cmdIdx = -1;
+    bool thisDevice = false;
     if (strncmp(topic, buf, strlen(buf)) == 0) {
       ESP_LOGI(TAG, "Device specific downlink message arrived [%s]", topic);
       cmdIdx = strlen(buf);
+      thisDevice = true;
     }
     sprintf(buf, "%s/down/", config.mqttTopic);
     if (strncmp(topic, buf, strlen(buf)) == 0) {
@@ -176,6 +180,18 @@ namespace mqtt {
       int reference = atoi(msg);
       if (reference >= 400 && reference <= 2000) {
         calibrateCo2SensorCallback(reference);
+      }
+    } else if (strncmp(buf, "selfTest", strlen(buf)) == 0) {
+      if (thisDevice) {
+        selfTestCo2SensorCallback();
+      } else {
+        ESP_LOGI(TAG, "Ignoring self test request to all devices!");
+      }
+    } else if (strncmp(buf, "factoryReset", strlen(buf)) == 0) {
+      if (thisDevice) {
+        factoryResetCo2SensorCallback();
+      } else {
+        ESP_LOGI(TAG, "Ignoring factory reset request to all devices!");
       }
     } else if (strncmp(buf, "setTemperatureOffset", strlen(buf)) == 0) {
       float tempOffset = atof(msg);
@@ -266,6 +282,8 @@ namespace mqtt {
   void setupMqtt(
     Model* _model,
     calibrateCo2SensorCallback_t _calibrateCo2SensorCallback,
+    selfTestCo2SensorCallback_t _selfTestCo2SensorCallback,
+    factoryResetCo2SensorCallback_t _factoryResetCo2SensorCallback,
     setTemperatureOffsetCallback_t _setTemperatureOffsetCallback,
     getTemperatureOffsetCallback_t _getTemperatureOffsetCallback,
     getSPS30AutoCleanIntervalCallback_t _getSPS30AutoCleanIntervalCallback,
@@ -280,6 +298,8 @@ namespace mqtt {
 
     model = _model;
     calibrateCo2SensorCallback = _calibrateCo2SensorCallback;
+    selfTestCo2SensorCallback = _selfTestCo2SensorCallback;
+    factoryResetCo2SensorCallback = _factoryResetCo2SensorCallback;
     setTemperatureOffsetCallback = _setTemperatureOffsetCallback;
     getTemperatureOffsetCallback = _getTemperatureOffsetCallback;
     getSPS30AutoCleanIntervalCallback = _getSPS30AutoCleanIntervalCallback;

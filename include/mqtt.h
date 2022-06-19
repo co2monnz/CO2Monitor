@@ -6,6 +6,8 @@
 
 namespace mqtt {
   typedef void (*calibrateCo2SensorCallback_t)(uint16_t);
+  typedef void (*selfTestCo2SensorCallback_t)();
+  typedef void (*factoryResetCo2SensorCallback_t)();
   typedef void (*setTemperatureOffsetCallback_t)(float);
   typedef float (*getTemperatureOffsetCallback_t)(void);
   typedef uint32_t(*getSPS30AutoCleanIntervalCallback_t)(void);
@@ -16,6 +18,8 @@ namespace mqtt {
   void setupMqtt(
     Model* model,
     calibrateCo2SensorCallback_t calibrateCo2SensorCallback,
+    selfTestCo2SensorCallback_t selfTestCo2SensorCallback,
+    factoryResetCo2SensorCallback_t factoryResetCo2SensorCallback,
     setTemperatureOffsetCallback_t setTemperatureOffsetCallback,
     getTemperatureOffsetCallback_t getTemperatureOffsetCallback,
     getSPS30AutoCleanIntervalCallback_t getSPS30AutoCleanIntervalCallback,

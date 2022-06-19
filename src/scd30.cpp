@@ -124,6 +124,16 @@ boolean SCD30::calibrateScd30ToReference(uint16_t co2Reference) {
   return (retry < MAX_RETRY);
 }
 
+boolean SCD30::selfTest() {
+  ESP_LOGI(TAG, "SCD30 self test not implemented!");
+  return false;
+}
+
+boolean SCD30::factoryReset() {
+  ESP_LOGI(TAG, "SCD30 factory reset not implemented!");
+  return false;
+}
+
 float SCD30::getTemperatureOffset() {
   if (!I2C::takeMutex(pdMS_TO_TICKS(1000))) return false;
   float temperatureOffset = scd30->getTemperatureOffset() / 100.0;
