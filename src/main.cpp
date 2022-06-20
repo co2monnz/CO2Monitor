@@ -79,6 +79,12 @@ void calibrateCo2SensorCallback(uint16_t co2Reference) {
   if (I2C::scd40Present() && scd40) scd40->calibrateScd40ToReference(co2Reference);
 }
 
+char* scdSerial() {
+  if (I2C::scd30Present() && scd30) return scd30->getSerial();
+  if (I2C::scd40Present() && scd40) return scd40->getSerial();
+  return "";
+}
+
 void setTemperatureOffsetCallback(float temperatureOffset) {
   if (I2C::scd30Present() && scd30) scd30->setTemperatureOffset(temperatureOffset);
   if (I2C::scd40Present() && scd40) scd40->setTemperatureOffset(temperatureOffset);
@@ -175,6 +181,7 @@ void setup() {
 
   mqtt::setupMqtt(
     model,
+    scdSerial(),
     calibrateCo2SensorCallback,
     setTemperatureOffsetCallback,
     getTemperatureOffsetCallback,

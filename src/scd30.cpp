@@ -92,6 +92,11 @@ SCD30::~SCD30() {
   if (this->scd30) delete scd30;
 }
 
+char* SCD30::getSerial() {
+  // No serial number exposed from SCD30 :(
+  return "";
+}
+
 boolean SCD30::readScd30() {
 #ifdef SHOW_DEBUG_MSGS
   this->updateMessageCallback("readScd30");

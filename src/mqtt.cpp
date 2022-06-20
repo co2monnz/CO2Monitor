@@ -35,6 +35,7 @@ namespace mqtt {
   WiFiClient* wifiClient;
   PubSubClient* mqtt_client;
   Model* model;
+  char* scdSerial;
 
   calibrateCo2SensorCallback_t calibrateCo2SensorCallback;
   setTemperatureOffsetCallback_t setTemperatureOffsetCallback;
@@ -96,6 +97,7 @@ namespace mqtt {
     char msg[CONFIG_SIZE];
     StaticJsonDocument<CONFIG_SIZE> json;
     json["appVersion"] = APP_VERSION;
+    json["scdSerial"] = scdSerial;
     json["altitude"] = config.altitude;
     json["yellowThreshold"] = config.yellowThreshold;
     json["redThreshold"] = config.redThreshold;
@@ -266,6 +268,7 @@ namespace mqtt {
 
   void setupMqtt(
     Model* _model,
+    char* _scdSerial,
     calibrateCo2SensorCallback_t _calibrateCo2SensorCallback,
     setTemperatureOffsetCallback_t _setTemperatureOffsetCallback,
     getTemperatureOffsetCallback_t _getTemperatureOffsetCallback,
@@ -280,6 +283,7 @@ namespace mqtt {
     }
 
     model = _model;
+    scdSerial = _scdSerial;
     calibrateCo2SensorCallback = _calibrateCo2SensorCallback;
     setTemperatureOffsetCallback = _setTemperatureOffsetCallback;
     getTemperatureOffsetCallback = _getTemperatureOffsetCallback;

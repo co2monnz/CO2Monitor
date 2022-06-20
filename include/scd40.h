@@ -18,10 +18,12 @@ public:
   boolean calibrateScd40ToReference(uint16_t co2Reference);
   boolean setTemperatureOffset(float temperatureOffset);
   float getTemperatureOffset();
+  char* getSerial();
 
 private:
   Model* model;
   SensirionI2CScd4x* scd40;
+  char _scd40Serial[7];
   updateMessageCallback_t updateMessageCallback;
 
   TaskHandle_t task;

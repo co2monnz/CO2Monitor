@@ -15,6 +15,7 @@ namespace mqtt {
 
   void setupMqtt(
     Model* model,
+    char *scdSerial,
     calibrateCo2SensorCallback_t calibrateCo2SensorCallback,
     setTemperatureOffsetCallback_t setTemperatureOffsetCallback,
     getTemperatureOffsetCallback_t getTemperatureOffsetCallback,

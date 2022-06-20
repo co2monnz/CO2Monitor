@@ -18,6 +18,7 @@ public:
   boolean calibrateScd30ToReference(uint16_t co2Reference);
   boolean setTemperatureOffset(float temperatureOffset);
   float getTemperatureOffset();
+  char* getSerial();
 
 private:
   Model* model;

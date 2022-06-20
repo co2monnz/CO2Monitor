@@ -59,7 +59,8 @@ SCD40::SCD40(TwoWire* wire, Model* _model, updateMessageCallback_t _updateMessag
 
   uint16_t serialNo[3];
   if (checkError(scd40->getSerialNumber(serialNo[0], serialNo[1], serialNo[2]), "getSerialNumber")) {
-    ESP_LOGD(TAG, "SCD40 serial#: %x%x%x", serialNo[0], serialNo[1], serialNo[2]);
+    snprintf(&_scd40Serial[0], sizeof(_scd40Serial), "%x%x%x", serialNo[0], serialNo[1], serialNo[2]);
+    ESP_LOGD(TAG, "SCD40 serial#: %s", _scd40Serial);
   }
 
   uint16_t ascEnabled;
@@ -94,6 +95,10 @@ SCD40::~SCD40() {
   if (this->scd40) delete scd40;
 }
 
+
+char *SCD40::getSerial() {
+  return &_scd40Serial[0];
+}
 
 boolean SCD40::readScd40() {
 #ifdef SHOW_DEBUG_MSGS
