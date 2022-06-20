@@ -200,6 +200,7 @@ namespace mqtt {
         return;
       }
       bool rebootRequired = false;
+<<<<<<< HEAD
       if (doc.containsKey("deviceId")) { config.deviceId = doc["deviceId"].as<int>(); rebootRequired = true; }
       if (doc.containsKey("altitude")) config.altitude = doc["altitude"].as<int>();
       if (doc.containsKey("yellowThreshold")) config.yellowThreshold = doc["yellowThreshold"].as<int>();
@@ -227,6 +228,10 @@ namespace mqtt {
       if (doc.containsKey("hub75Clk")) { config.hub75Clk = doc["hub75Clk"].as<uint8_t>(); rebootRequired = true; }
       if (doc.containsKey("hub75Lat")) { config.hub75Lat = doc["hub75Lat"].as<uint8_t>(); rebootRequired = true; }
       if (doc.containsKey("hub75Oe")) { config.hub75Oe = doc["hub75Oe"].as<uint8_t>(); rebootRequired = true; }
+      if (doc.containsKey("mqttHost")) {
+        strncpy(config.mqttHost, doc["mqttHost"].as<char *>(), MQTT_HOSTNAME_LEN + 1);
+        rebootRequired = true;
+      }
       if (saveConfiguration(config) && rebootRequired) {
         sprintf(buf, "%s/%u/up/status", config.mqttTopic, config.deviceId);
         mqtt_client->publish(buf, "{\"msg\":\"configuration updated, rebooting shortly\"}");
