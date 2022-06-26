@@ -16,7 +16,7 @@
   "greenLed": 27,
   "yellowLed": 26,
   "redLed": 25,
-  "neopixelData": 0,
+  "neopixelData": 16,
   "neopixelNumber": 3,
   "featherMatrixData": 0,
   "featherMatrixClock": 13,
