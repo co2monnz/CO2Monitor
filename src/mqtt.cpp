@@ -190,6 +190,21 @@ namespace mqtt {
       cleanSPS30Callback();
     } else if (strncmp(buf, "getConfig", strlen(buf)) == 0) {
       publishConfiguration();
+    } else if (strncmp(buf, "setWifi", strlen(buf)) == 0) {
+      StaticJsonDocument<CONFIG_SIZE> doc;
+      DeserializationError error = deserializeJson(doc, msg);
+      if (error) {
+        ESP_LOGW(TAG, "Failed to parse message: %s", error.f_str());
+        return;
+      }
+      if (doc.containsKey("SSID") && doc.containsKey("PASS")) {
+        WiFi.begin(doc["SSID"].as<char *>(), doc["PASS"].as<char *>());
+        delay(3000);
+        ESP_LOGI(TAG, "WiFi credentials set. Restarting");
+        esp_restart();
+      } else {
+        ESP_LOGI(TAG, "setWifi didn't have expected contents!");
+      }
     } else if (strncmp(buf, "setConfig", strlen(buf)) == 0) {
       StaticJsonDocument<CONFIG_SIZE> doc;
       DeserializationError error = deserializeJson(doc, msg);
