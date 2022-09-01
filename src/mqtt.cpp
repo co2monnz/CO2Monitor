@@ -44,11 +44,14 @@ namespace mqtt {
   cleanSPS30Callback_t cleanSPS30Callback;
   getSPS30StatusCallback_t getSPS30StatusCallback;
 
+  uint32_t lastReconnectAttempt = 0;
+
   void publishSensors(uint16_t mask) {
+    if (!WiFi.isConnected() || !mqtt_client->connected()) return;
     MqttMessage msg;
     msg.cmd = X_CMD_PUBLISH_SENSORS;
     msg.mask = mask;
-    xQueueSendToBack(mqttQueue, (void*)&msg, pdMS_TO_TICKS(100));
+    if (mqttQueue) xQueueSendToBack(mqttQueue, (void*)&msg, pdMS_TO_TICKS(100));
   }
 
   void publishSensorsInternal(uint16_t mask) {
@@ -80,7 +83,11 @@ namespace mqtt {
       ESP_LOGW(TAG, "Failed to serialise payload");
       return;
     }
-    ESP_LOGI(TAG, "Publishing sensor values: %s:%s", topic, msg);
+    if (strncmp(msg, "null", 4) == 0) {
+      ESP_LOGD(TAG, "Nothing to publish - mask: %x", mask);
+      return;
+    }
+    ESP_LOGD(TAG, "Publishing sensor values: %s:%s", topic, msg);
     if (!mqtt_client->publish(topic, msg)) ESP_LOGE(TAG, "publish failed!");
   }
 
@@ -88,7 +95,7 @@ namespace mqtt {
     MqttMessage msg;
     msg.cmd = X_CMD_PUBLISH_CONFIGURATION;
     msg.mask = 0;
-    xQueueSendToBack(mqttQueue, (void*)&msg, pdMS_TO_TICKS(100));
+    if (mqttQueue) xQueueSendToBack(mqttQueue, (void*)&msg, pdMS_TO_TICKS(100));
   }
 
   void publishConfigurationInternal() {
@@ -97,9 +104,12 @@ namespace mqtt {
     StaticJsonDocument<CONFIG_SIZE> json;
     json["appVersion"] = APP_VERSION;
     json["altitude"] = config.altitude;
-    json["yellowThreshold"] = config.yellowThreshold;
-    json["redThreshold"] = config.redThreshold;
-    json["darkRedThreshold"] = config.darkRedThreshold;
+    json["co2YellowThreshold"] = config.co2YellowThreshold;
+    json["co2RedThreshold"] = config.co2RedThreshold;
+    json["co2DarkRedThreshold"] = config.co2DarkRedThreshold;
+    json["iaqYellowThreshold"] = config.iaqYellowThreshold;
+    json["iaqRedThreshold"] = config.iaqRedThreshold;
+    json["iaqDarkRedThreshold"] = config.iaqDarkRedThreshold;
     json["brightness"] = config.brightness;
     sprintf(buf, "%s", WifiManager::getMac().c_str());
     json["mac"] = buf;
@@ -198,38 +208,42 @@ namespace mqtt {
         return;
       }
       bool rebootRequired = false;
-      if (doc["altitude"].as<int>()) config.altitude = doc["altitude"];
-      if (doc["yellowThreshold"].as<int>()) config.yellowThreshold = doc["yellowThreshold"];
-      if (doc["redThreshold"].as<int>()) config.redThreshold = doc["redThreshold"];
-      if (doc["darkRedThreshold"].as<uint16_t>()) config.darkRedThreshold = doc["darkRedThreshold"];
-      if (doc["brightness"].as<uint8_t>()) config.brightness = doc["brightness"];
-      if (doc["ssd1306Rows"].as<uint8_t>()) { config.ssd1306Rows = doc["ssd1306Rows"];rebootRequired = true; }
-      if (doc["greenLed"].as<uint8_t>()) { config.greenLed = doc["greenLed"];rebootRequired = true; }
-      if (doc["yellowLed"].as<uint8_t>()) { config.yellowLed = doc["yellowLed"];rebootRequired = true; }
-      if (doc["redLed"].as<uint8_t>()) { config.redLed = doc["redLed"];rebootRequired = true; }
-      if (doc["neopixelData"].as<uint8_t>()) { config.neopixelData = doc["neopixelData"];rebootRequired = true; }
-      if (doc["neopixelNumber"].as<uint8_t>()) { config.neopixelNumber = doc["neopixelNumber"];rebootRequired = true; }
-      if (doc["featherMatrixData"].as<uint8_t>()) { config.featherMatrixData = doc["featherMatrixData"];rebootRequired = true; }
-      if (doc["featherMatrixClock"].as<uint8_t>()) { config.featherMatrixClock = doc["featherMatrixClock"];rebootRequired = true; }
-      if (doc["hub75R1"].as<uint8_t>()) { config.hub75R1 = doc["hub75R1"];rebootRequired = true; }
-      if (doc["hub75G1"].as<uint8_t>()) { config.hub75G1 = doc["hub75G1"];rebootRequired = true; }
-      if (doc["hub75B1"].as<uint8_t>()) { config.hub75B1 = doc["hub75B1"];rebootRequired = true; }
-      if (doc["hub75R2"].as<uint8_t>()) { config.hub75R2 = doc["hub75R2"];rebootRequired = true; }
-      if (doc["hub75G2"].as<uint8_t>()) { config.hub75G2 = doc["hub75G2"];rebootRequired = true; }
-      if (doc["hub75B2"].as<uint8_t>()) { config.hub75B2 = doc["hub75B2"];rebootRequired = true; }
-      if (doc["hub75ChA"].as<uint8_t>()) { config.hub75ChA = doc["hub75ChA"];rebootRequired = true; }
-      if (doc["hub75ChB"].as<uint8_t>()) { config.hub75ChB = doc["hub75ChB"];rebootRequired = true; }
-      if (doc["hub75ChC"].as<uint8_t>()) { config.hub75ChC = doc["hub75ChC"];rebootRequired = true; }
-      if (doc["hub75ChD"].as<uint8_t>()) { config.hub75ChD = doc["hub75ChD"];rebootRequired = true; }
-      if (doc["hub75Clk"].as<uint8_t>()) { config.hub75Clk = doc["hub75Clk"];rebootRequired = true; }
-      if (doc["hub75Lat"].as<uint8_t>()) { config.hub75Lat = doc["hub75Lat"];rebootRequired = true; }
-      if (doc["hub75Oe"].as<uint8_t>()) { config.hub75Oe = doc["hub75Oe"];rebootRequired = true; }
+      if (doc.containsKey("altitude")) config.altitude = doc["altitude"].as<int>();
+      if (doc.containsKey("co2YellowThreshold")) config.co2YellowThreshold = doc["co2YellowThreshold"].as<uint16_t>();
+      if (doc.containsKey("co2RedThreshold")) config.co2RedThreshold = doc["co2RedThreshold"].as<uint16_t>();
+      if (doc.containsKey("co2DarkRedThreshold")) config.co2DarkRedThreshold = doc["co2DarkRedThreshold"].as<uint16_t>();
+      if (doc.containsKey("iaqYellowThreshold")) config.iaqYellowThreshold = doc["iaqYellowThreshold"].as<uint16_t>();
+      if (doc.containsKey("iaqRedThreshold")) config.iaqRedThreshold = doc["iaqRedThreshold"].as<uint16_t>();
+      if (doc.containsKey("iaqDarkRedThreshold")) config.iaqDarkRedThreshold = doc["iaqDarkRedThreshold"].as<uint16_t>();
+      if (doc.containsKey("brightness")) config.brightness = doc["brightness"].as<uint8_t>();
+      if (doc.containsKey("ssd1306Rows")) { config.ssd1306Rows = doc["ssd1306Rows"].as<uint8_t>(); rebootRequired = true; }
+      if (doc.containsKey("greenLed")) { config.greenLed = doc["greenLed"].as<uint8_t>(); rebootRequired = true; }
+      if (doc.containsKey("yellowLed")) { config.yellowLed = doc["yellowLed"].as<uint8_t>(); rebootRequired = true; }
+      if (doc.containsKey("redLed")) { config.redLed = doc["redLed"].as<uint8_t>(); rebootRequired = true; }
+      if (doc.containsKey("neopixelData")) { config.neopixelData = doc["neopixelData"].as<uint8_t>(); rebootRequired = true; }
+      if (doc.containsKey("neopixelNumber")) { config.neopixelNumber = doc["neopixelNumber"].as<uint8_t>(); rebootRequired = true; }
+      if (doc.containsKey("featherMatrixData")) { config.featherMatrixData = doc["featherMatrixData"].as<uint8_t>(); rebootRequired = true; }
+      if (doc.containsKey("featherMatrixClock")) { config.featherMatrixClock = doc["featherMatrixClock"].as<uint8_t>(); rebootRequired = true; }
+      if (doc.containsKey("hub75R1")) { config.hub75R1 = doc["hub75R1"].as<uint8_t>(); rebootRequired = true; }
+      if (doc.containsKey("hub75G1")) { config.hub75G1 = doc["hub75G1"].as<uint8_t>(); rebootRequired = true; }
+      if (doc.containsKey("hub75B1")) { config.hub75B1 = doc["hub75B1"].as<uint8_t>(); rebootRequired = true; }
+      if (doc.containsKey("hub75R2")) { config.hub75R2 = doc["hub75R2"].as<uint8_t>(); rebootRequired = true; }
+      if (doc.containsKey("hub75G2")) { config.hub75G2 = doc["hub75G2"].as<uint8_t>(); rebootRequired = true; }
+      if (doc.containsKey("hub75B2")) { config.hub75B2 = doc["hub75B2"].as<uint8_t>(); rebootRequired = true; }
+      if (doc.containsKey("hub75ChA")) { config.hub75ChA = doc["hub75ChA"].as<uint8_t>(); rebootRequired = true; }
+      if (doc.containsKey("hub75ChB")) { config.hub75ChB = doc["hub75ChB"].as<uint8_t>(); rebootRequired = true; }
+      if (doc.containsKey("hub75ChC")) { config.hub75ChC = doc["hub75ChC"].as<uint8_t>(); rebootRequired = true; }
+      if (doc.containsKey("hub75ChD")) { config.hub75ChD = doc["hub75ChD"].as<uint8_t>(); rebootRequired = true; }
+      if (doc.containsKey("hub75Clk")) { config.hub75Clk = doc["hub75Clk"].as<uint8_t>(); rebootRequired = true; }
+      if (doc.containsKey("hub75Lat")) { config.hub75Lat = doc["hub75Lat"].as<uint8_t>(); rebootRequired = true; }
+      if (doc.containsKey("hub75Oe")) { config.hub75Oe = doc["hub75Oe"].as<uint8_t>(); rebootRequired = true; }
       if (saveConfiguration(config) && rebootRequired) {
         sprintf(buf, "%s/%u/up/status", config.mqttTopic, config.deviceId);
         mqtt_client->publish(buf, "{\"msg\":\"configuration updated, rebooting shortly\"}");
         delay(1000);
         esp_restart();
       }
+      model->configurationChanged();
     } else if (strncmp(buf, "resetWifi", strlen(buf)) == 0) {
       WifiManager::resetSettings();
     } else if (strncmp(buf, "ota", strlen(buf)) == 0) {
@@ -242,12 +256,13 @@ namespace mqtt {
   }
 
   void reconnect() {
+    if (millis() - lastReconnectAttempt < 60000) return;
     char buf[256];
     sprintf(buf, "CO2Monitor-%u-%s", config.deviceId, WifiManager::getMac().c_str());
-    while (!WiFi.isConnected()) { vTaskDelay(pdMS_TO_TICKS(100)); }
-    while (!mqtt_client->connected()) {
+    if (!WiFi.isConnected()) return;
+    lastReconnectAttempt = millis();
+    if (!mqtt_client->connected()) {
       ESP_LOGD(TAG, "Attempting MQTT connection...");
-      vTaskDelay(pdMS_TO_TICKS(10));
       if (mqtt_client->connect(buf, config.mqttUsername, config.mqttPassword)) {
         ESP_LOGD(TAG, "MQTT connected");
         sprintf(buf, "%s/%u/down/#", config.mqttTopic, config.deviceId);
@@ -258,8 +273,8 @@ namespace mqtt {
         mqtt_client->publish(buf, "{\"online\":true}");
       } else {
         ESP_LOGW(TAG, "MQTT connection failed, rc=%i", mqtt_client->state());
+        vTaskDelay(pdMS_TO_TICKS(1000));
       }
-      vTaskDelay(pdMS_TO_TICKS(1000));
     }
   }
 
@@ -298,11 +313,17 @@ namespace mqtt {
         ((WiFiClientSecure*)wifiClient)->loadCACert(root_ca_file, root_ca_file.size());
         root_ca_file.close();
       }
-      File server_cert_file = LittleFS.open(MQTT_SERVER_CERT_FILENAME, "r");
-      if (server_cert_file) {
-        ESP_LOGD(TAG, "Loading MQTT server cert from FS (%s)", MQTT_SERVER_CERT_FILENAME);
-        ((WiFiClientSecure*)wifiClient)->loadCertificate(server_cert_file, server_cert_file.size());
-        server_cert_file.close();
+      File client_key_file = LittleFS.open(MQTT_CLIENT_KEY_FILENAME, "r");
+      if (client_key_file) {
+        ESP_LOGD(TAG, "Loading MQTT client key from FS (%s)", MQTT_CLIENT_KEY_FILENAME);
+        ((WiFiClientSecure*)wifiClient)->loadPrivateKey(client_key_file, client_key_file.size());
+        client_key_file.close();
+      }
+      File client_cert_file = LittleFS.open(MQTT_CLIENT_CERT_FILENAME, "r");
+      if (client_cert_file) {
+        ESP_LOGD(TAG, "Loading MQTT client cert from FS (%s)", MQTT_CLIENT_CERT_FILENAME);
+        ((WiFiClientSecure*)wifiClient)->loadCertificate(client_cert_file, client_cert_file.size());
+        client_cert_file.close();
       }
     } else {
       wifiClient = new WiFiClient();
@@ -316,6 +337,7 @@ namespace mqtt {
 
   void mqttLoop(void* pvParameters) {
     _ASSERT((uint32_t)pvParameters == 1);
+    lastReconnectAttempt = millis() - 60000;
     BaseType_t notified;
     MqttMessage msg;
     while (1) {
@@ -331,6 +353,7 @@ namespace mqtt {
         reconnect();
       }
       mqtt_client->loop();
+      vTaskDelay(pdMS_TO_TICKS(50));
     }
     vTaskDelete(NULL);
   }

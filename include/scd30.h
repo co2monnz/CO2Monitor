@@ -14,19 +14,20 @@ public:
   SCD30(TwoWire* pwire, Model* _model, updateMessageCallback_t _updateMessageCallback);
   ~SCD30();
 
-  TaskHandle_t start(const char* name, uint32_t stackSize, UBaseType_t priority, BaseType_t core);
+  boolean readScd30();
+  uint32_t getInterval();
+
   boolean calibrateScd30ToReference(uint16_t co2Reference);
   boolean setTemperatureOffset(float temperatureOffset);
   float getTemperatureOffset();
+  boolean setAmbientPressure(uint16_t ambientPressureInHpa);
 
 private:
   Model* model;
   Adafruit_SCD30* scd30;
   updateMessageCallback_t updateMessageCallback;
-
-  TaskHandle_t task;
-
-  boolean readScd30();
+  boolean initialised = false;
+  uint16_t lastAmbientPressure = 0x0000;
 
   static void scd30Loop(void* pvParameters);
 };

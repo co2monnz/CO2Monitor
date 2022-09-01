@@ -3,7 +3,6 @@
 #include <scd30.h>
 #include <Arduino.h>
 
-#include <model.h>
 #include <configManager.h>
 #include <i2c.h>
 #include <esp32-hal-timer.h>
@@ -13,34 +12,24 @@
 static const char TAG[] = __FILE__;
 
 #define MAX_RETRY 5
-
-const uint32_t X_CMD_DATA_READY = bit(1);
-
-TaskHandle_t handleForInt;
-
-static void IRAM_ATTR measurementReady() {
-  BaseType_t high_task_awoken = pdFALSE;
-  if (handleForInt)
-    xTaskNotifyFromISR(handleForInt, X_CMD_DATA_READY, eSetBits, &high_task_awoken);
-}
+#define SCD30_INTERVAL 15
 
 SCD30::SCD30(TwoWire* wire, Model* _model, updateMessageCallback_t _updateMessageCallback) {
   this->model = _model;
   this->updateMessageCallback = _updateMessageCallback;
   this->scd30 = new Adafruit_SCD30();
 
-  if (!I2C::takeMutex(pdMS_TO_TICKS(portMAX_DELAY))) return;
+  if (!I2C::takeMutex(portMAX_DELAY)) return;
+  Wire.setClock(SCD30_I2C_CLK);
 
   uint8_t retry = 0;
   while (retry < MAX_RETRY && !scd30->begin(SCD30_I2CADDR_DEFAULT, wire, 0)) retry++;
   if (retry >= MAX_RETRY) {
     ESP_LOGW(TAG, "Failed to find SCD30 chip");
   }
-  Wire.setClock(I2C_CLK);
-  ESP_LOGI(TAG, "Wire.getClock(): %u", Wire.getClock());
 
   retry = 0;
-  while (retry < MAX_RETRY && !scd30->setMeasurementInterval(15)) retry++;
+  while (retry < MAX_RETRY && !scd30->setMeasurementInterval(SCD30_INTERVAL)) retry++;
   if (retry >= MAX_RETRY) {
     ESP_LOGW(TAG, "Failed to set measurement interval");
   }
@@ -79,25 +68,28 @@ SCD30::SCD30(TwoWire* wire, Model* _model, updateMessageCallback_t _updateMessag
   if (retry >= MAX_RETRY) {
     ESP_LOGW(TAG, "Failed to start continuous measurement");
   }
-
-  pinMode(SCD30_RDY_PIN, INPUT);
-
+  Wire.setClock(I2C_CLK);
   I2C::giveMutex();
+  initialised = true;
   ESP_LOGD(TAG, "SCD30 initialised");
 }
 
 SCD30::~SCD30() {
-  detachInterrupt(SCD30_RDY_PIN);
-  if (this->task) vTaskDelete(this->task);
   if (this->scd30) delete scd30;
+}
+
+uint32_t SCD30::getInterval() {
+  return SCD30_INTERVAL;
 }
 
 boolean SCD30::readScd30() {
 #ifdef SHOW_DEBUG_MSGS
   this->updateMessageCallback("readScd30");
 #endif
-  if (!I2C::takeMutex(pdMS_TO_TICKS(1000))) return false;
+  if (!I2C::takeMutex(I2C_MUTEX_DEF_WAIT)) return false;
+  Wire.setClock(SCD30_I2C_CLK);
   boolean read = scd30->dataReady() && scd30->read();
+  Wire.setClock(I2C_CLK);
   I2C::giveMutex();
   if (read) {
     ESP_LOGD(TAG, "Temp: %.1fC, rH: %.1f%%, CO2:  %.0fppm", scd30->temperature, scd30->relative_humidity, scd30->CO2);
@@ -116,18 +108,22 @@ boolean SCD30::readScd30() {
 }
 
 boolean SCD30::calibrateScd30ToReference(uint16_t co2Reference) {
-  if (!I2C::takeMutex(pdMS_TO_TICKS(1000))) return false;
+  if (!I2C::takeMutex(I2C_MUTEX_DEF_WAIT)) return false;
+  Wire.setClock(SCD30_I2C_CLK);
   uint8_t retry = 0;
   while (retry++ < MAX_RETRY && !scd30->forceRecalibrationWithReference(co2Reference));
   ESP_LOGD(TAG, "co2Reference: %u, result %s", co2Reference, (retry < MAX_RETRY) ? "true" : "false");
+  Wire.setClock(I2C_CLK);
   I2C::giveMutex();
   return (retry < MAX_RETRY);
 }
 
 float SCD30::getTemperatureOffset() {
-  if (!I2C::takeMutex(pdMS_TO_TICKS(1000))) return false;
+  if (!I2C::takeMutex(I2C_MUTEX_DEF_WAIT)) return false;
+  Wire.setClock(SCD30_I2C_CLK);
   float temperatureOffset = scd30->getTemperatureOffset() / 100.0;
   ESP_LOGD(TAG, "Temperature offset: %.1f C", temperatureOffset);
+  Wire.setClock(I2C_CLK);
   I2C::giveMutex();
   return temperatureOffset;
 }
@@ -137,50 +133,29 @@ boolean SCD30::setTemperatureOffset(float temperatureOffset) {
     ESP_LOGW(TAG, "Negative temperature offset not supported");
     return false;
   }
-  if (!I2C::takeMutex(pdMS_TO_TICKS(1000))) return false;
+  if (!I2C::takeMutex(I2C_MUTEX_DEF_WAIT)) return false;
+  Wire.setClock(SCD30_I2C_CLK);
   uint8_t retry = 0;
   while (retry < MAX_RETRY && !scd30->setTemperatureOffset(floor(temperatureOffset * 100))) retry++;
   if (retry >= MAX_RETRY)
     ESP_LOGW(TAG, "Failed to set temperature offset");
+  Wire.setClock(I2C_CLK);
   I2C::giveMutex();
   return (retry < MAX_RETRY);
 }
 
-TaskHandle_t SCD30::start(const char* name, uint32_t stackSize, UBaseType_t priority, BaseType_t core) {
-  xTaskCreatePinnedToCore(
-    this->scd30Loop,  // task function
-    name,             // name of task
-    stackSize,        // stack size of task
-    this,             // parameter of the task
-    priority,         // priority of the task
-    &task,            // task handle
-    core);            // CPU core
-  handleForInt = this->task;
-  attachInterrupt(SCD30_RDY_PIN, measurementReady, RISING);
-  return this->task;
-}
-
-void SCD30::scd30Loop(void* pvParameters) {
-  SCD30* instance = (SCD30*)pvParameters;
-  uint32_t taskNotification;
-  BaseType_t notified;
-
-  while (1) {
-    notified = xTaskNotifyWait(0x00,  // Don't clear any bits on entry
-      ULONG_MAX,                      // Clear all bits on exit
-      &taskNotification,              // Receives the notification value
-      pdMS_TO_TICKS(1000));
-    if (notified == pdPASS) {
-      if (taskNotification & X_CMD_DATA_READY) {
-        taskNotification &= ~X_CMD_DATA_READY;
-        instance->readScd30();
-      }
-    } else {
-      if (digitalRead(SCD30_RDY_PIN)) {
-        ESP_LOGD(TAG, "Missed Interrupt - updating out of band");
-        instance->readScd30();
-      }
-    }
+boolean SCD30::setAmbientPressure(uint16_t ambientPressureInHpa) {
+  if (!initialised) return false;
+  if (ambientPressureInHpa == lastAmbientPressure) return true;
+  lastAmbientPressure = ambientPressureInHpa;
+  ESP_LOGD(TAG, "setAmbientPressure: %u", ambientPressureInHpa);
+  if (!I2C::takeMutex(I2C_MUTEX_DEF_WAIT)) return false;
+  Wire.setClock(SCD30_I2C_CLK);
+  boolean success = scd30->startContinuousMeasurement(ambientPressureInHpa);
+  if (!success) {
+    ESP_LOGD(TAG, "failed to setAmbientPressure");
   }
-  vTaskDelete(NULL);
+  Wire.setClock(I2C_CLK);
+  I2C::giveMutex();
+  return success;
 }
