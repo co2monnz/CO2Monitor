@@ -5,37 +5,72 @@
 Inspired by and many thanks to
 [make-IoT / CO2-Ampel](https://github.com/make-IoT/CO2-Ampel) and [Umwelt-Campus](https://www.umwelt-campus.de/en/forschung/projekte/iot-werkstatt/translate-to-englisch-ideen-zur-corona-krise)
 
+# Why use a CO2 Monitor?
+
+A large risk of Covid-19 transmission stems from airborne virus particles that can linger in poorly ventilated spaces for hours. This has been recognised by the WHO. To lower the risk of infection, particularly in busier indoor settings, good ventilation and regular air exchange are key.
+
+This is where measuring CO2 levels in rooms can provide a direct and good indication of sufficient ventilation which correlates with reduced viral load and low risk of virus transmission. Good air quality is also important for creating a good learning or work environment.
+
+Poorly ventilated rooms often feel stale and ‘stuffy’, but by the time we can feel that the air quality is already pretty poor; early indications are easily missed. A sensitive and consistent CO2 monitor can accurately measure CO2 levels and display an easy-to-understand and actionable traffic light indication with orange as an indication of worsening air quality and red as a reminder to open a window.
+
+The data collected by the sensors should be logged and made available for further consumption. It can be visualised on a central school/organisation-wide dashboard and used to establish a baseline and understand patterns or identify rooms that are more difficult to ventilate, as well as providing potential alerting or to remotely checking a room before another group uses it.
+
+These CO2 monitors have been tested in collaboration with researchers from the public health department of the University of Otago.
+
+## Resources
+
+- [RNZ interview](https://www.rnz.co.nz/national/programmes/afternoons/audio/2018840570/handyman-dad-builds-units-to-monitor-class-air-quality)
+- [The What, How and Why of CO2 Monitoring](https://makezine.com/2021/05/17/the-what-how-and-why-of-co-monitoring/)
+- [Ventilation in NZ schools during the Omicron wave – results from a preliminary study](https://blogs.otago.ac.nz/pubhealthexpert/ventilation-in-nz-schools-during-the-omicron-wave-results-from-a-preliminary-study/)
+- [Ministry of Education Indoor Air Quality and Thermal Comfort](https://assets.education.govt.nz/public/Documents/Primary-Secondary/Property/Design/Indoor-Air-Quality-and-Thermal-Comfort-V2-v2.0-2022.pdf)
+- [What size particle is important to transmission of COVID-19?](https://www.aerosol.mech.ubc.ca/what-size-particle-is-important-to-transmission/)
+- [Comparison of Low-Cost Particulate Matter Sensors for Indoor Air Monitoring during COVID-19 Lockdown](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7766947/pdf/sensors-20-07290.pdf)
+
+# Sections
+
+- [PCBs](#pcbs) listing the different PCB designs, [parts list](pcb/CO2%20Monitor%20V0.5%20through-hole/bom.md) and [assembly guide](pcb/CO2%20Monitor%20V0.5%20through-hole/step-by-step.md)
+- [Firmware](#firmware) describing the device's software features and how to use them
+- [Sensors](#sensors) has more information on the available sensors
+- [Calibration](#calibration) has some important information on keeping the readings accurate
+- [Hardware](#hardware) has a little more background on the controller and wiring
+
+# PCBs
+
 There are now 2 new PCB designs, one for SMD components and another one solely using easy to solder through-hole components.
 
-## SMD
-
-- ESP 32 Devkit (30 pin)
-- SCD40 or SCD30 CO2 sensor
-- optional BME680 IAQ/VOC sensor
-- optional 128x64 0.96 inch OLED display
-- alternatively Feather wing footprint for easy expansion modules
-- combined footprints for either 3 Neopixels (WS2812B 5050) or 3 x 5mm red/yellow/green LEDs
-- I2C JST-PH connector for additional connectivity (e.g. SPS30 particulate matter sensor)
-
-![](img/SMD-Neopixel.jpg)
-
-## Through hole
+## Through hole version
 
 [BOM](pcb/CO2%20Monitor%20V0.5%20through-hole/bom.md)
+
+[Assembly guide](pcb/CO2%20Monitor%20V0.5%20through-hole/step-by-step.md)
 
 - uses only through hole components and can be hand soldered
 - ESP 32 Devkit (30 pin)
 - SCD30 NDIR CO2 sensor
 - optional 128x64 0.96 inch OLED display
 - 3 x 5mm red/yellow/green LEDs
-- I2C JST-PH connector for additional connectivity (e.g. SPS30 particulate matter sensor)
+- optional I2C JST-PH connector for additional connectivity (e.g. SPS30 particulate matter sensor)
+- optional USB-B connector to power the monitor
 
 ![](img/TH-SCD30.jpg)
+
+## SMD version
+
+- ESP 32 Devkit (30 pin)
+- SCD40 or SCD30 NDIR CO2 sensor
+- optional BME680 IAQ/VOC sensor
+- optional 128x64 0.96 inch OLED display
+- alternatively Feather wing footprint for easy expansion modules
+- combined footprints for either 3 Neopixels (WS2812B 5050) or 3 x 5mm red/yellow/green LEDs
+- I2C JST-PH connector for additional connectivity (e.g. SPS30 particulate matter sensor)
+- optional USB-B connector to power the monitor
+
+![](img/SMD-Neopixel.jpg)
 
 ## First generation
 
 - ESP 32 Devkit (30 pin)
-- SCD40 or SCD30 CO2 sensor
+- SCD40 or SCD30 NDIR CO2 sensor
 - optional BME680 IAQ/VOC sensor
 - Feather wing footprint for easy expansion modules
 - 3 x 5mm red/yellow/green LEDs
@@ -50,36 +85,26 @@ There are now 2 new PCB designs, one for SMD components and another one solely u
 
 ![](img/Neopixel-feather.jpg)
 
-# Use case
-
-A large risk of Covid-19 transmission stems from airborne virus particles that can linger in poorly ventilated spaces for hours. This has been recognised by the WHO. To lower the risk of infection, particularly in busier indoor settings, good ventilation and regular air exchange are key.
-
-This is where measuring CO2 levels in rooms can provide a direct and good indication of sufficient ventilation which correlates with reduced viral load and low risk of virus transmission. Good air quality is also important for creating a good learning or work environment.
-
-Poorly ventilated rooms often feel stale and ‘stuffy’, but by the time we can feel that the air quality is already pretty poor and early indications are easily missed. A more sensitive and consistent CO2 monitor can accurately measure CO2 levels and display an easy-to-understand and actionable traffic light indication with orange as an indication of worsening air quality and red as a reminder to open a window.
-
-The data collected by the sensors should be logged and made available for further consumption. It can be visualised a central school wide dashboard and used to establish a baseline and understand patterns or identify rooms that are more difficult to ventilate, as well as potentially alerting or to remotely check a room before another group uses it.
-
-These CO2 Monitors have been tested in collaboration with researchers from the public health department of university of Otago.
-
-## Resources
-
-- [RNZ interview](https://www.rnz.co.nz/national/programmes/afternoons/audio/2018840570/handyman-dad-builds-units-to-monitor-class-air-quality)
-- [The What, How and Why of CO2 Monitoring](https://makezine.com/2021/05/17/the-what-how-and-why-of-co-monitoring/)
-- [Ventilation in NZ schools during the Omicron wave – results from a preliminary study](https://blogs.otago.ac.nz/pubhealthexpert/ventilation-in-nz-schools-during-the-omicron-wave-results-from-a-preliminary-study/)
-- [Ministry of Education Indoor Air Quality and Thermal Comfort](https://assets.education.govt.nz/public/Documents/Primary-Secondary/Property/Design/Indoor-Air-Quality-and-Thermal-Comfort-V2-v2.0-2022.pdf)
-- [What size particle is important to transmission of COVID-19?](https://www.aerosol.mech.ubc.ca/what-size-particle-is-important-to-transmission/)
-- [Comparison of Low-Cost Particulate Matter Sensors for Indoor Air Monitoring during COVID-19 Lockdown](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7766947/pdf/sensors-20-07290.pdf)
-
 # Firmware
+
+[![PlatformIO CI](https://github.com/oseiler2/CO2Monitor/actions/workflows/pre-release.yml/badge.svg)](https://github.com/oseiler2/CO2Monitor/actions/workflows/pre-release.yml)
+[![Release](https://github.com/oseiler2/CO2Monitor/actions/workflows/tagged-release.yml/badge.svg)](https://github.com/oseiler2/CO2Monitor/actions/workflows/tagged-release.yml)
 
 ## Wifi
 
 Supports [ESPAsync WiFiManager](https://github.com/khoih-prog/ESPAsync_WiFiManager) to set up wireless credentials and further configuration.
 
-If no wifi credentials have been configured yet it will automatically launch an AP using the SSID `CO2-Monitor-<ESP32mac>`. A password can be configured in the file `extra.ini` which needs to be created by copying [extra.template.ini](extra.template.ini) and applying the desired changes.
+### Up to v1.2.3
 
-Once wifi credentials have been configured pressing the `Boot` button for more than 1 second on the ESP32 puts the device in configuration mode:
+If no wifi credentials have been configured yet it will automatically launch an AP using the SSID `CO2-Monitor-<ESP32mac>`.
+
+Once wifi credentials have been configured briefly pressing the `Boot` button on the ESP32 puts the device in configuration mode:
+
+### From v1.2.4
+
+Pressing the `Boot` button for less than 2 seconds launches an AP using the SSID `CO2-Monitor-<ESP32mac>`. Connecting to this AP allows the Wifi credentials for the monitor to be set.
+
+A password for the AP can be configured in the file `extra.ini` which needs to be created by copying [extra.template.ini](extra.template.ini) and applying the desired changes.
 
 <img src="img/configuration.png">
 
@@ -90,6 +115,10 @@ The monitor is configured via the `config.json` file on the ESP32 file system. T
 - via the web interface
 - by directly editing [config.json](data/config.json) and uploading it via `Upload Filesystem Image`
 - via MQTT (once connected)
+
+## Backend using Mosquitto - Node-Red - InfluxDB - Grafana
+
+[Docker compose file](./docker/docker.md) to set up the database and dashboards.
 
 ## MQTT
 
@@ -134,9 +163,12 @@ Sending `co2monitor/<id>/down/getConfig` will triger the node to reply with its 
 {
   "appVersion": 1,
   "altitude": 10,
-  "yellowThreshold": 700,
-  "redThreshold": 900,
-  "darkRedThreshold": 1200,
+  "co2YellowThreshold": 700,
+  "co2RedThreshold": 900,
+  "co2DarkRedThreshold": 1200,
+  "iaqYellowThreshold": 100,
+  "iaqRedThreshold": 200,
+  "iaqDarkRedThreshold": 300,
   "brightness": 255,
   "mac": "xxyyzz",
   "ip": "1.2.3.4",
@@ -177,9 +209,12 @@ A message to `co2monitor/<id>/down/setConfig` will set the node's configuration 
 ```
 {
   "altitude": 10,
-  "yellowThreshold": 700,
-  "redThreshold": 900,
-  "darkRedThreshold": 1200,
+  "co2YellowThreshold": 700,
+  "co2RedThreshold": 900,
+  "co2DarkRedThreshold": 1200,
+  "iaqYellowThreshold": 100,
+  "iaqRedThreshold": 200,
+  "iaqDarkRedThreshold": 300,
   "brightness": 255,
   "ssd1306Rows": 64,
   "greenLed": 27,
@@ -229,12 +264,12 @@ A message to `co2monitor/<id>/down/reboot` will trigger a reset on the node.
 
 ### MQTT TLS support
 
-To connect to an MQTT server using TLS (recommended) you need to enable TLS in the configuration by setting `mqttUseTls` to `true`. You also need to supply a root CA certificate in PEM format on the file system as `/mqtt_root_ca.pem` and/or a server certificate in PEM format on the file system as `/mqtt_server_cert.pem`. These files can be uploaded using the `Upload Filesystem Image` project task in PlatformIO. Alternatively you can set `mqttInsecure` to `true` to disable certificate validation altogether.
+To connect to an MQTT server using TLS (recommended) you need to enable TLS in the configuration by setting `mqttUseTls` to `true`. You also need to supply a root CA certificate in PEM format on the file system as `/mqtt_root_ca.pem` and/or a client certificate and key for using mTLS as `mqtt_client_cert.pem` and `mqtt_client_key.pem`. These files can be uploaded using the `Upload Filesystem Image` project task in PlatformIO. Alternatively you can set `mqttInsecure` to `true` to disable certificate validation altogether.
 
 ## Supported sensors
 
-- [SCD3x CO2, temperature and humidity sensor](https://www.sensirion.com/en/environmental-sensors/carbon-dioxide-sensors/carbon-dioxide-sensors-scd30/)
-- [SCD4x CO2, temperature and humidity sensor](https://www.sensirion.com/en/environmental-sensors/carbon-dioxide-sensors/carbon-dioxide-sensor-scd4x/)
+- [SCD3x NDIR CO2, temperature and humidity sensor](https://www.sensirion.com/en/environmental-sensors/carbon-dioxide-sensors/carbon-dioxide-sensors-scd30/)
+- [SCD4x NDIR CO2, temperature and humidity sensor](https://www.sensirion.com/en/environmental-sensors/carbon-dioxide-sensors/carbon-dioxide-sensor-scd4x/)
 - [BME680 IAQ, VOC, temperature and humidity sensor](https://www.bosch-sensortec.com/products/environmental-sensors/gas-sensors/bme680/)
 - [SPS30 Small Particulate matter sensor](https://sensirion.com/products/catalog/SPS30/)
 
@@ -253,11 +288,11 @@ The presence of supported I2C based sensors/displays will be automatically detec
 
 ## SCD3x
 
-A SCD3x NDIR sensor can be connected to the designated footprint and will provide CO2, temperature and humidity readings via I2C. It supports a separate ready signal which is connected to the ESP32.
+A SCD3x NDIR CO2 sensor can be connected to the designated footprint and will provide CO2, temperature and humidity readings via I2C. It supports a separate ready signal which is connected to the ESP32.
 
 ## SCD4x
 
-A SCD4x sensor can be soldered directly onto the pcb and provides CO2, temperature and humidity readings via I2C.
+A SCD4x NDIR CO2 sensor can be soldered directly onto the pcb and provides CO2, temperature and humidity readings via I2C.
 
 ## BME680
 
@@ -281,7 +316,11 @@ Other I2C based sensors can be wired using the JST-PH I2C header.
 
 # Calibration
 
-CO2 sensors need to be regularly calibrated to provide reliable measurements. The used sensors support auto-calibration and that is enabled in the firmware. It works by looking over measurements over a period and calibrating the lowest value against 420ppm (configurable in the firmware). This is based on the assumption that the monitor 'sees' clean outside air about once a week. If that cannot be achieved the firmware also allows for a forced calibration against a given value. Please also make sure to set the altitude setting according to the monitor location. For details please check the sensors' datasheets.
+CO2 sensors need to be regularly calibrated to provide reliable measurements. The used sensors support auto-calibration and that is enabled in the firmware. It works by looking over measurements over a period and calibrating the lowest value against 420ppm (configurable in the firmware). This is based on the assumption that the monitor 'sees' clean outside air about once a week. If that cannot be achieved the firmware also allows for a forced calibration against a given value. Please also make sure to set the altitude setting according to the monitor location. For details please check the sensor's datasheets.
+
+## From v1.2.4
+
+Manual calibration can be triggered by pressing the `Boot` button for more than 5 seconds. Make sure the monitor has been exposed to fresh outside air for a while and be careful not to breathe towards the monitor when doing this.
 
 # Hardware
 

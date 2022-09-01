@@ -25,7 +25,10 @@ namespace WifiManager {
     for (uint8_t i = 0;i < 6;i++) {
       rawMac[i] = (uint8_t)(ESP.getEfuseMac() >> (6 - i - 1) * 8 & 0x000000ffUL);
     }
-    return base64::encode(rawMac, 6);
+    String encoded = base64::encode(rawMac, 6);
+    encoded.replace("+", "-");
+    encoded.replace("/", "_");
+    return encoded;
   }
 
   String getSSID() {
@@ -46,9 +49,12 @@ namespace WifiManager {
   ESPAsync_WMParameter* mqttUseTlsParam;
   ESPAsync_WMParameter* mqttInsecureParam;
   ESPAsync_WMParameter* altitudeParam;
-  ESPAsync_WMParameter* yellowThresholdParam;
-  ESPAsync_WMParameter* redThresholdParam;
-  ESPAsync_WMParameter* darkRedThresholdParam;
+  ESPAsync_WMParameter* co2YellowThresholdParam;
+  ESPAsync_WMParameter* co2RedThresholdParam;
+  ESPAsync_WMParameter* co2DarkRedThresholdParam;
+  ESPAsync_WMParameter* iaqYellowThresholdParam;
+  ESPAsync_WMParameter* iaqRedThresholdParam;
+  ESPAsync_WMParameter* iaqDarkRedThresholdParam;
   ESPAsync_WMParameter* brightnessParam;
   ESPAsync_WMParameter* ssd1306RowsParam;
   ESPAsync_WMParameter* greenLedParam;
@@ -91,9 +97,12 @@ namespace WifiManager {
     char mqttUseTls[6];
     char mqttInsecure[6];
     char altitude[5];
-    char yellowThreshold[5];
-    char redThreshold[5];
-    char darkRedThreshold[5];
+    char co2YellowThreshold[5];
+    char co2RedThreshold[5];
+    char co2DarkRedThreshold[5];
+    char iaqYellowThreshold[5];
+    char iaqRedThreshold[5];
+    char iaqDarkRedThreshold[5];
     char brightness[4];
     char ssd1306Rows[3];
     char greenLed[3];
@@ -126,9 +135,12 @@ namespace WifiManager {
     sprintf(mqttUseTls, "%s", config.mqttUseTls ? "true" : "false");
     sprintf(mqttInsecure, "%s", config.mqttInsecure ? "true" : "false");
     sprintf(altitude, "%u", config.altitude);
-    sprintf(yellowThreshold, "%u", config.yellowThreshold);
-    sprintf(redThreshold, "%u", config.redThreshold);
-    sprintf(darkRedThreshold, "%u", config.darkRedThreshold);
+    sprintf(co2YellowThreshold, "%u", config.co2YellowThreshold);
+    sprintf(co2RedThreshold, "%u", config.co2RedThreshold);
+    sprintf(co2DarkRedThreshold, "%u", config.co2DarkRedThreshold);
+    sprintf(iaqYellowThreshold, "%u", config.iaqYellowThreshold);
+    sprintf(iaqRedThreshold, "%u", config.iaqRedThreshold);
+    sprintf(iaqDarkRedThreshold, "%u", config.iaqDarkRedThreshold);
     sprintf(brightness, "%u", config.brightness);
     sprintf(ssd1306Rows, "%u", config.ssd1306Rows);
     sprintf(greenLed, "%u", config.greenLed);
@@ -161,9 +173,12 @@ namespace WifiManager {
     ESP_LOGD(TAG, "mqttUseTls: %s", mqttUseTls);
     ESP_LOGD(TAG, "mqttInsecure: %s", mqttInsecure);
     ESP_LOGD(TAG, "altitude: %s", altitude);
-    ESP_LOGD(TAG, "yellowThreshold: %s", yellowThreshold);
-    ESP_LOGD(TAG, "redThreshold: %s", redThreshold);
-    ESP_LOGD(TAG, "darkRedThreshold: %s", darkRedThreshold);
+    ESP_LOGD(TAG, "co2YellowThreshold: %s", co2YellowThreshold);
+    ESP_LOGD(TAG, "co2RedThreshold: %s", co2RedThreshold);
+    ESP_LOGD(TAG, "co2DarkRedThreshold: %s", co2DarkRedThreshold);
+    ESP_LOGD(TAG, "iaqYellowThreshold: %s", iaqYellowThreshold);
+    ESP_LOGD(TAG, "iaqRedThreshold: %s", iaqRedThreshold);
+    ESP_LOGD(TAG, "iaqDarkRedThreshold: %s", iaqDarkRedThreshold);
     ESP_LOGD(TAG, "brightness: %s", brightness);
     ESP_LOGD(TAG, "ssd1306Rows: %s", ssd1306Rows);
     ESP_LOGD(TAG, "greenLed: %s", greenLed);
@@ -187,20 +202,23 @@ namespace WifiManager {
     ESP_LOGD(TAG, "hub75Lat: %s", hub75Lat);
     ESP_LOGD(TAG, "hub75Oe: %s", hub75Oe);
 
-    deviceIdParam = new ESPAsync_WMParameter("deviceId", "Device ID", deviceId, 5, "config.deviceId");
-    mqttTopicParam = new ESPAsync_WMParameter("mqttTopic", "MQTT topic", mqttTopic, MQTT_TOPIC_ID_LEN, config.mqttTopic);
-    mqttUsernameParam = new ESPAsync_WMParameter("mqttUsername", "MQTT username", mqttUsername, MQTT_USERNAME_LEN, config.mqttUsername);
-    mqttPasswordParam = new ESPAsync_WMParameter("mqttPassword", "MQTT password", mqttPassword, MQTT_PASSWORD_LEN, config.mqttPassword);
-    mqttHostParam = new ESPAsync_WMParameter("mqttHost", "MQTT host", mqttHost, MQTT_HOSTNAME_LEN, config.mqttHost);
-    mqttPortParam = new ESPAsync_WMParameter("mqttServerPort", "MQTT port", mqttPort, 5, "config.mqttServerPort");
-    mqttUseTlsParam = new ESPAsync_WMParameter("mqttUseTls", "MQTT use TLS", mqttUseTls, 5, "config.mqttUseTls");
-    mqttInsecureParam = new ESPAsync_WMParameter("mqttInsecure", "MQTT Ignore certificate errors", mqttInsecure, 5, "config.mqttInsecure");
-    altitudeParam = new ESPAsync_WMParameter("altitude", "Altitude", altitude, 4, "config.altitude");
-    yellowThresholdParam = new ESPAsync_WMParameter("yellowThreshold", "Yellow threshold ", yellowThreshold, 5, "config.yellowThreshold");
-    redThresholdParam = new ESPAsync_WMParameter("redThreshold", "Red threshold", redThreshold, 5, "config.redThreshold");
-    darkRedThresholdParam = new ESPAsync_WMParameter("darkRedThreshold", "Dark red threshold", darkRedThreshold, 5, "config.darkRedThreshold");
+    deviceIdParam = new ESPAsync_WMParameter("deviceId", "Device ID", deviceId, 6, "config.deviceId");
+    mqttTopicParam = new ESPAsync_WMParameter("mqttTopic", "MQTT topic", mqttTopic, MQTT_TOPIC_ID_LEN + 1, config.mqttTopic);
+    mqttUsernameParam = new ESPAsync_WMParameter("mqttUsername", "MQTT username", mqttUsername, MQTT_USERNAME_LEN + 1, config.mqttUsername);
+    mqttPasswordParam = new ESPAsync_WMParameter("mqttPassword", "MQTT password", mqttPassword, MQTT_PASSWORD_LEN + 1, config.mqttPassword);
+    mqttHostParam = new ESPAsync_WMParameter("mqttHost", "MQTT host", mqttHost, MQTT_HOSTNAME_LEN + 1, config.mqttHost);
+    mqttPortParam = new ESPAsync_WMParameter("mqttServerPort", "MQTT port", mqttPort, 6, "config.mqttServerPort");
+    mqttUseTlsParam = new ESPAsync_WMParameter("mqttUseTls", "MQTT use TLS", mqttUseTls, 6, "config.mqttUseTls");
+    mqttInsecureParam = new ESPAsync_WMParameter("mqttInsecure", "MQTT Ignore certificate errors", mqttInsecure, 6, "config.mqttInsecure");
+    altitudeParam = new ESPAsync_WMParameter("altitude", "Altitude", altitude, 5, "config.altitude");
+    co2YellowThresholdParam = new ESPAsync_WMParameter("co2YellowThreshold", "CO2 Yellow threshold ", co2YellowThreshold, 6, "config.co2YellowThreshold");
+    co2RedThresholdParam = new ESPAsync_WMParameter("co2RedThreshold", "CO2 Red threshold", co2RedThreshold, 6, "config.co2RedThreshold");
+    co2DarkRedThresholdParam = new ESPAsync_WMParameter("co2DarkRedThreshold", "CO2 Dark red threshold", co2DarkRedThreshold, 6, "config.co2DarkRedThreshold");
+    iaqYellowThresholdParam = new ESPAsync_WMParameter("iaqYellowThreshold", "IAQ Yellow threshold ", iaqYellowThreshold, 6, "config.iaqYellowThreshold");
+    iaqRedThresholdParam = new ESPAsync_WMParameter("iaqRedThreshold", "IAQ Red threshold", iaqRedThreshold, 6, "config.iaqRedThreshold");
+    iaqDarkRedThresholdParam = new ESPAsync_WMParameter("iaqDarkRedThreshold", "IAQ Dark red threshold", iaqDarkRedThreshold, 6, "config.iaqDarkRedThreshold");
     brightnessParam = new ESPAsync_WMParameter("brightness", "LED brightness pwm", brightness, 4, "config.brightness");
-    ssd1306RowsParam = new ESPAsync_WMParameter("ssd1306Rows", "SSD1306 rows", ssd1306Rows, 3, "config.ssd1306Rows");
+    ssd1306RowsParam = new ESPAsync_WMParameter("ssd1306Rows", "SSD1306 rows", ssd1306Rows, 4, "config.ssd1306Rows");
     greenLedParam = new ESPAsync_WMParameter("greenLed", "Green Led pin", greenLed, 3, "config.greenLed");
     yellowLedParam = new ESPAsync_WMParameter("yellowLed", "Yellow Led pin", yellowLed, 3, "config.yellowLed");
     redLedParam = new ESPAsync_WMParameter("redLed", "Red Led pin", redLed, 3, "config.redLed");
@@ -231,9 +249,12 @@ namespace WifiManager {
     wifiManager->addParameter(mqttUseTlsParam);
     wifiManager->addParameter(mqttInsecureParam);
     wifiManager->addParameter(altitudeParam);
-    wifiManager->addParameter(yellowThresholdParam);
-    wifiManager->addParameter(redThresholdParam);
-    wifiManager->addParameter(darkRedThresholdParam);
+    wifiManager->addParameter(co2YellowThresholdParam);
+    wifiManager->addParameter(co2RedThresholdParam);
+    wifiManager->addParameter(co2DarkRedThresholdParam);
+    wifiManager->addParameter(iaqYellowThresholdParam);
+    wifiManager->addParameter(iaqRedThresholdParam);
+    wifiManager->addParameter(iaqDarkRedThresholdParam);
     wifiManager->addParameter(brightnessParam);
     wifiManager->addParameter(ssd1306RowsParam);
     wifiManager->addParameter(greenLedParam);
@@ -272,9 +293,12 @@ namespace WifiManager {
       ESP_LOGD(TAG, "mqttUseTls: %s", mqttUseTlsParam->getValue());
       ESP_LOGD(TAG, "mqttInsecure: %s", mqttInsecureParam->getValue());
       ESP_LOGD(TAG, "altitude: %s", altitudeParam->getValue());
-      ESP_LOGD(TAG, "yellowThreshold: %s", yellowThresholdParam->getValue());
-      ESP_LOGD(TAG, "redThreshold: %s", redThresholdParam->getValue());
-      ESP_LOGD(TAG, "darkRedThreshold: %s", darkRedThresholdParam->getValue());
+      ESP_LOGD(TAG, "co2YellowThreshold: %s", co2YellowThresholdParam->getValue());
+      ESP_LOGD(TAG, "co2RedThreshold: %s", co2RedThresholdParam->getValue());
+      ESP_LOGD(TAG, "co2DarkRedThreshold: %s", co2DarkRedThresholdParam->getValue());
+      ESP_LOGD(TAG, "iaqYellowThreshold: %s", iaqYellowThresholdParam->getValue());
+      ESP_LOGD(TAG, "iaqRedThreshold: %s", iaqRedThresholdParam->getValue());
+      ESP_LOGD(TAG, "iaqDarkRedThreshold: %s", iaqDarkRedThresholdParam->getValue());
       ESP_LOGD(TAG, "brightness: %s", brightnessParam->getValue());
       ESP_LOGD(TAG, "ssd1306Rows: %s", ssd1306RowsParam->getValue());
       ESP_LOGD(TAG, "greenLed: %s", greenLedParam->getValue());
@@ -298,17 +322,20 @@ namespace WifiManager {
       ESP_LOGD(TAG, "hub75Lat: %s", hub75LatParam->getValue());
       ESP_LOGD(TAG, "hub75Oe: %s", hub75OeParam->getValue());
       config.deviceId = (uint16_t)atoi(deviceIdParam->getValue());
-      strncpy(config.mqttTopic, mqttTopicParam->getValue(), MQTT_TOPIC_ID_LEN + 1);
-      strncpy(config.mqttUsername, mqttUsernameParam->getValue(), MQTT_USERNAME_LEN + 1);
-      strncpy(config.mqttPassword, mqttPasswordParam->getValue(), MQTT_PASSWORD_LEN + 1);
-      strncpy(config.mqttHost, mqttHostParam->getValue(), MQTT_HOSTNAME_LEN + 1);
+      strncpy(config.mqttTopic, mqttTopicParam->getValue(), MQTT_TOPIC_ID_LEN);
+      strncpy(config.mqttUsername, mqttUsernameParam->getValue(), MQTT_USERNAME_LEN);
+      strncpy(config.mqttPassword, mqttPasswordParam->getValue(), MQTT_PASSWORD_LEN);
+      strncpy(config.mqttHost, mqttHostParam->getValue(), MQTT_HOSTNAME_LEN);
       config.mqttServerPort = (uint16_t)atoi(mqttPortParam->getValue());
       config.mqttUseTls = strcmp("true", mqttUseTlsParam->getValue()) == 0;
       config.mqttInsecure = strcmp("true", mqttInsecureParam->getValue()) == 0;
       config.altitude = (uint16_t)atoi(altitudeParam->getValue());
-      config.yellowThreshold = (uint16_t)atoi(yellowThresholdParam->getValue());
-      config.redThreshold = (uint16_t)atoi(redThresholdParam->getValue());
-      config.darkRedThreshold = (uint16_t)atoi(darkRedThresholdParam->getValue());
+      config.co2YellowThreshold = (uint16_t)atoi(co2YellowThresholdParam->getValue());
+      config.co2RedThreshold = (uint16_t)atoi(co2RedThresholdParam->getValue());
+      config.co2DarkRedThreshold = (uint16_t)atoi(co2DarkRedThresholdParam->getValue());
+      config.iaqYellowThreshold = (uint16_t)atoi(iaqYellowThresholdParam->getValue());
+      config.iaqRedThreshold = (uint16_t)atoi(iaqRedThresholdParam->getValue());
+      config.iaqDarkRedThreshold = (uint16_t)atoi(iaqDarkRedThresholdParam->getValue());
       config.brightness = (uint8_t)atoi(brightnessParam->getValue());
       config.ssd1306Rows = (uint8_t)atoi(ssd1306RowsParam->getValue());
       config.greenLed = (uint8_t)atoi(greenLedParam->getValue());
@@ -344,9 +371,12 @@ namespace WifiManager {
     delete mqttUseTlsParam;
     delete mqttInsecureParam;
     delete altitudeParam;
-    delete yellowThresholdParam;
-    delete redThresholdParam;
-    delete darkRedThresholdParam;
+    delete co2YellowThresholdParam;
+    delete co2RedThresholdParam;
+    delete co2DarkRedThresholdParam;
+    delete iaqYellowThresholdParam;
+    delete iaqRedThresholdParam;
+    delete iaqDarkRedThresholdParam;
     delete brightnessParam;
     delete ssd1306RowsParam;
     delete greenLedParam;
@@ -372,14 +402,6 @@ namespace WifiManager {
   }
 
   void setupWifi(setPriorityMessageCallback_t setPriorityMessageCallback, clearPriorityMessageCallback_t clearPriorityMessageCallback) {
-
-    // try to connect with known settings
-    WiFi.begin();
-    uint8_t i = 0;
-    while (WiFi.status() != WL_CONNECTED && i++ < 20) {
-      delay(200);
-    }
-
     if (WiFi.status() != WL_CONNECTED) {
       ESP_LOGD(TAG, "Could not connect to Wifi using known settings");
       AsyncWebServer webServer(HTTP_PORT);

@@ -24,23 +24,23 @@ Model::~Model() {}
 void Model::updateStatus() {
   TrafficLightStatus co2Status = UNDEFINED;
   if (this->co2 != 0) {
-    if (this->co2 < config.yellowThreshold) {
+    if (this->co2 < config.co2YellowThreshold) {
       co2Status = GREEN;
-    } else if (this->co2 < config.redThreshold) {
+    } else if (this->co2 < config.co2RedThreshold) {
       co2Status = YELLOW;
-    } else if (this->co2 < config.darkRedThreshold) {
+    } else if (this->co2 < config.co2DarkRedThreshold) {
       co2Status = RED;
-    } else if (this->co2 >= config.darkRedThreshold) {
+    } else {
       co2Status = DARK_RED;
     }
   }
   TrafficLightStatus iaqStatus = UNDEFINED;
   if (iaq != 0) {
-    if (iaq <= 50) {
+    if (iaq <= config.iaqYellowThreshold) {
       iaqStatus = GREEN;
-    } else if (iaq <= 100) {
+    } else if (iaq <= config.iaqRedThreshold) {
       iaqStatus = YELLOW;
-    } else if (iaq <= 200) {
+    } else if (iaq <= config.iaqDarkRedThreshold) {
       iaqStatus = RED;
     } else {
       iaqStatus = DARK_RED;
@@ -76,6 +76,11 @@ void Model::updateModel(uint16_t _pm0_5, uint16_t _pm1, uint16_t _pm2_5, uint16_
   this->pm4 = _pm4;
   this->pm10 = _pm10;
   modelUpdatedEvt(M_PM0_5 | M_PM1_0 | M_PM2_5 | M_PM4 | M_PM10, this->status, this->status);
+}
+
+void Model::configurationChanged() {
+  updateStatus();
+  modelUpdatedEvt(M_CONFIG_CHANGED, this->status, this->status);
 }
 
 TrafficLightStatus Model::getStatus() {
