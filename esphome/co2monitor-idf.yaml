@@ -5,8 +5,10 @@ esphome:
     upload_speed: 921600
   includes:
   - neopixel-idf.h
+  - firmware-ota.h
   on_boot:
     then:
+      - lambda: !lambda FirmwareInfo();
       - output.turn_off: blue_led
       - delay: 0.1s
       - light.control:
@@ -41,6 +43,7 @@ esphome:
           sprintf(idS, "co2monitor-dev/%u", id(node_id));
           id(mqttclient).set_topic_prefix(idS);
           char topic[256];
+          // Provisioning handler
           sprintf(topic, "%s/down/setNodeId", idS);
           id(mqttclient).subscribe(topic, [=](const std::string &topic, const std::string &payload) {
               ESP_LOGD("setNodeId", "Got new nodeID: %s", payload.c_str());
@@ -61,6 +64,13 @@ esphome:
                 App.reboot();
               }
           });
+          // OTA handler
+          sprintf(topic, "%s/down/ota", idS);
+          id(mqttclient).subscribe(topic, [=](const std::string &topic, const std::string &payload) {
+              ESP_LOGD("ota", "Got ota request: %s", payload.c_str());
+              UpgradeFirmware(payload.c_str());
+          });
+
 
 esp32:
   board: esp32doit-devkit-v1
