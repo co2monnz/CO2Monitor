@@ -1,0 +1,228 @@
+esphome:
+  name: co2monitor-idf
+  name_add_mac_suffix: true
+  platformio_options:
+    upload_speed: 921600
+  includes:
+  - neopixel-idf.h
+  on_boot:
+    then:
+      - output.turn_off: blue_led
+      - delay: 0.1s
+      - light.control:
+            id: leds
+            state: on
+            red: 1
+            green: 0
+            blue: 0
+      - delay: 0.5s
+      - light.control:
+            id: leds
+            state: on
+            red: 1
+            green: 0.7
+            blue: 0
+      - delay: 0.5s
+      - light.control:
+            id: leds
+            state: on
+            red: 0
+            green: 1
+            blue: 0
+      - delay: 0.5s
+      - light.control:
+            id: leds
+            state: off
+      - globals.set:
+          id: other_id
+          value: '10'
+      - lambda: |-
+          char idS[64];
+          sprintf(idS, "co2monitor-dev/%u", id(node_id));
+          id(mqttclient).set_topic_prefix(idS);
+          char topic[256];
+          sprintf(topic, "%s/down/setNodeId", idS);
+          id(mqttclient).subscribe(topic, [=](const std::string &topic, const std::string &payload) {
+              ESP_LOGD("setNodeId", "Got new nodeID: %s", payload.c_str());
+              int newId = atoi(payload.c_str());
+              // What a palaver, first set the new value by calling the globals.set action manually,
+              // which updates it in memory only
+              globals::GlobalVarSetAction<globals::RestoringGlobalsComponent<int>> *setAction;
+              setAction = new globals::GlobalVarSetAction<globals::RestoringGlobalsComponent<int>>(node_id);
+              setAction->set_value(newId);
+              setAction->play();
+              // Then make the global variable (in memory) write itself to the NVS queue
+              node_id->loop();
+              // Then force NVS to save now (instead of waiting 1 minute)
+              global_preferences->sync();
+              // So we can hopefully reboot with the new ID.
+              ESP_LOGD("setNodeId", "nodeID is now : %u. Rebooting to action.", id(node_id));
+              if (newId == id(node_id)) {
+                App.reboot();
+              }
+          });
+
+esp32:
+  board: esp32doit-devkit-v1
+  framework:
+    type: esp-idf
+    version: recommended
+
+globals:
+  - id: node_id
+    type: int
+    restore_value: true
+    initial_value: '45'
+  - id: other_id
+    type: int
+    restore_value: true
+    initial_value: '45'
+
+wifi:
+  id: wifi2
+
+esp32_improv:
+  id: improvConf
+  authorizer: boot
+  status_indicator: blue_led
+
+logger:
+  level: DEBUG
+
+#web_server:
+#  port: 80
+
+mqtt:
+  id: mqttclient
+  broker: mqtt-dev.co2mon.nz
+  username: co2monitor
+  password: co2monitor
+  discovery: false
+  log_topic:
+    topic: esphome/logs
+    level: WARN
+
+switch:
+  - platform: factory_reset
+    name: Restart with Factory Default Settings
+    id: reset
+    internal: true
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO0
+      mode:
+        input: true
+      inverted: true
+    name: Boot Button
+    id: boot
+    internal: true
+    on_click:
+      - min_length: 5s
+        max_length: 20s
+        then:
+          - switch.turn_on: reset
+
+output:
+  - platform: gpio
+    id: blue_led
+    pin:
+      number: GPIO2
+      mode:
+        output: true
+
+i2c:
+  scl: GPIO22
+  sda: GPIO21
+  frequency: 100kHz
+
+sensor:
+  - platform: scd4x
+    update_interval: "15s"
+    co2:
+      name: "CO2"
+      id: co2
+      on_value:
+        - if:
+            condition:
+              sensor.in_range:
+                  id: co2
+                  below: 800
+            then:
+              - light.control:
+                  id: leds
+                  state: on
+                  red: 0
+                  green: 1
+                  blue: 0
+        - if:
+            condition:
+              sensor.in_range:
+                id: co2
+                above: 800
+                below: 1000
+            then:
+              - light.control:
+                    id: leds
+                    state: on
+                    red: 1
+                    green: 0.7
+                    blue: 0
+        - if:
+            condition:
+              sensor.in_range:
+                id: co2
+                above: 1000
+            then:
+              - light.control:
+                    id: leds
+                    state: on
+                    red: 1
+                    green: 0
+                    blue: 0
+    temperature:
+      name: "Temperature"
+      id: temperature
+    humidity:
+      name: "Humidity"
+      id: humidity
+
+light:
+- platform: custom
+  lambda: |-
+    auto np = new NeopixelIDF();
+    App.register_component(np);
+    return {np};
+
+  lights:
+    - name: "LEDs"
+      id: leds
+      default_transition_length: 0s
+      internal: true
+
+font:
+  - file: "fonts/Roboto-Regular.ttf"
+    id: roboto
+    size: 15
+  - file: "fonts/Roboto-Regular.ttf"
+    id: roboto30
+    size: 30
+  - file: "fonts/Roboto-Regular.ttf"
+    id: roboto10
+    size: 10
+
+display:
+  - platform: ssd1306_i2c
+    model: "SSD1306 128x64"
+    address: 0x3C
+    brightness: 100%
+    id: display1
+    lambda: |-
+      if (id(wifi2).is_connected()) {
+        it.printf(0, 0, id(roboto), "W");
+      }  else {
+        it.printf(0, 0, id(roboto), "-");
+      }
+      it.printf(50,15, id(roboto30), "%.0f", id(co2).state);
+      it.printf(0, 50, id(roboto10), "temp:  %.1f   hum: %.0f%%", id(temperature).state, id(humidity).state);
