@@ -56,7 +56,7 @@ void UpgradeFirmware(const char *url) {
     ESP_LOGI("ota", "Starting firmware update");
     if (ret == ESP_OK) {
         esp_restart();
-        return // never reached in theory.
+        return; // never reached in theory.
     } else {
         ESP_LOGE("ota", "Firmware upgrade failed");
     }
