@@ -6,6 +6,7 @@ esphome:
   includes:
   - neopixel-idf.h
   - firmware-ota.h
+  - mqtt.h
   on_boot:
     then:
       - lambda: !lambda FirmwareInfo();
@@ -70,7 +71,11 @@ esphome:
               ESP_LOGD("ota", "Got ota request: %s", payload.c_str());
               UpgradeFirmware(payload.c_str());
           });
-
+          // Config handler
+          sprintf(topic, "%s/down/setConfig", idS);
+          id(mqttclient).subscribe(topic, mqttSetConfig);
+          sprintf(topic, "%s/down/getConfig", idS);
+          id(mqttclient).subscribe(topic, mqttGetConfig);
 
 esp32:
   board: esp32doit-devkit-v1
