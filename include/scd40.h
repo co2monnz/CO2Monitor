@@ -2,7 +2,7 @@
 #define _SCD40_H
 
 #include <Arduino.h>
-#include "globals.h"
+#include <globals.h>
 #include <config.h>
 #include <messageSupport.h>
 #include <Wire.h>
@@ -14,10 +14,13 @@ public:
   SCD40(TwoWire* pwire, Model* _model, updateMessageCallback_t _updateMessageCallback);
   ~SCD40();
 
-  TaskHandle_t start(const char* name, uint32_t stackSize, UBaseType_t priority, BaseType_t core);
+  boolean readScd40();
+  uint32_t getInterval();
+
   boolean calibrateScd40ToReference(uint16_t co2Reference);
   boolean setTemperatureOffset(float temperatureOffset);
   float getTemperatureOffset();
+  boolean setAmbientPressure(uint16_t ambientPressureInHpa);
   char* getSerial();
 
 private:
@@ -25,10 +28,8 @@ private:
   SensirionI2CScd4x* scd40;
   char _scd40Serial[7];
   updateMessageCallback_t updateMessageCallback;
+  uint16_t lastAmbientPressure = 0x0000;
 
-  TaskHandle_t task;
-
-  boolean readScd40();
   boolean checkError(uint16_t error, char const* msg);
   static void scd40Loop(void* pvParameters);
 };

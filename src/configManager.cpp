@@ -1,5 +1,4 @@
-#include <Arduino.h>
-#include <config.h>
+
 #include <configManager.h>
 
 #include <FS.h>
@@ -25,9 +24,14 @@ Config config;
   "mqttInsecure": false,
   "mqttServerPort": 65535,
   "altitude": 12345,
-  "yellowThreshold": 800,
-  "redThreshold": 1000,
-  "darkRedThreshold": 2000,
+  "co2GreenThreshold": 0,
+  "co2YellowThreshold": 800,
+  "co2RedThreshold": 1000,
+  "co2DarkRedThreshold": 2000,
+  "iagGreenThreshold": 0,
+  "iaqYellowThreshold": 100,
+  "iaqRedThreshold": 200,
+  "iaqDarkRedThreshold": 300,
   "brightness": 255,
   "ssd1306Rows": 64,
   "greenLed": 27,
@@ -35,8 +39,12 @@ Config config;
   "redLed": 25,
   "neopixelData": 16,
   "neopixelNumber": 3,
+  "neopixelMatrixData": 14,
   "featherMatrixData": 27,
   "featherMatrixClock": 13,
+  "matrixColumns": 12,
+  "matrixRows": 5,
+  "matrixLayout": 0,
   "hub75R1": 15,
   "hub75G1": 2,
   "hub75B1": 4,
@@ -63,44 +71,54 @@ void setupConfigManager() {
   }
 }
 
-#define DEFAULT_MQTT_TOPIC "co2monitor"
-#define DEFAULT_MQTT_HOST "127.0.0.1"
-#define DEFAULT_MQTT_PORT 1883
-#define DEFAULT_MQTT_USERNAME "co2monitor"
-#define DEFAULT_MQTT_PASSWORD "co2monitor"
-#define DEFAULT_MQTT_USE_TLS       false
-#define DEFAULT_MQTT_INSECURE      false
-#define DEFAULT_DEVICE_ID              0
-#define DEFAULT_ALTITUDE               5
-#define DEFAULT_YELLOW_THRESHOLD     700
-#define DEFAULT_RED_THRESHOLD        900
-#define DEFAULT_DARK_RED_THRESHOLD  1200
-#define DEFAULT_BRIGHTNESS           255
-#define DEFAULT_SSD1306_ROWS          64
+#define DEFAULT_MQTT_TOPIC      "co2monitor"
+#define DEFAULT_MQTT_HOST        "127.0.0.1"
+#define DEFAULT_MQTT_PORT               1883
+#define DEFAULT_MQTT_USERNAME   "co2monitor"
+#define DEFAULT_MQTT_PASSWORD   "co2monitor"
+#define DEFAULT_MQTT_USE_TLS           false
+#define DEFAULT_MQTT_INSECURE          false
+#define DEFAULT_DEVICE_ID                  0
+#define DEFAULT_ALTITUDE                   5
+#define DEFAULT_CO2_GREEN_THRESHOLD        0
+#define DEFAULT_CO2_YELLOW_THRESHOLD     700
+#define DEFAULT_CO2_RED_THRESHOLD        900
+#define DEFAULT_CO2_DARK_RED_THRESHOLD  1200
+#define DEFAULT_IAQ_GREEN_THRESHOLD        0
+#define DEFAULT_IAQ_YELLOW_THRESHOLD     100
+#define DEFAULT_IAQ_RED_THRESHOLD        200
+#define DEFAULT_IAQ_DARK_RED_THRESHOLD   300
+#define DEFAULT_BRIGHTNESS               255
+#define DEFAULT_SSD1306_ROWS              64
 //27
-#define DEFAULT_GREEN_LED             0
-#define DEFAULT_YELLOW_LED            26
-#define DEFAULT_RED_LED               25
+#define DEFAULT_GREEN_LED                 0
+#define DEFAULT_YELLOW_LED                26
+#define DEFAULT_RED_LED                   25
 // 16
-#define DEFAULT_NEOPIXEL_DATA          0
-#define DEFAULT_NEOPIXEL_NUMBER        3
+#define DEFAULT_NEOPIXEL_DATA              0
+#define DEFAULT_NEOPIXEL_NUMBER            3
+// 14
+#define DEFAULT_NEOPIXEL_MATRIX_DATA       0
 // 27
-#define DEFAULT_FEATHER_MATRIX_DATA    0
-#define DEFAULT_FEATHER_MATRIX_CLK    13
+#define DEFAULT_FEATHER_MATRIX_DATA        0
+#define DEFAULT_FEATHER_MATRIX_CLK        13
+#define DEFAULT_MATRIX_COLUMNS            12
+#define DEFAULT_MATRIX_ROWS                5
+#define DEFAULT_MATRIX_LAYOUT              0
 // 15
-#define DEFAULT_HUB75_R1               0
-#define DEFAULT_HUB75_G1               2
-#define DEFAULT_HUB75_B1               4
-#define DEFAULT_HUB75_R2              16
-#define DEFAULT_HUB75_G2              12
-#define DEFAULT_HUB75_B2              17
-#define DEFAULT_HUB75_CH_A             5
-#define DEFAULT_HUB75_CH_B            18
-#define DEFAULT_HUB75_CH_C            19
-#define DEFAULT_HUB75_CH_D            14
-#define DEFAULT_HUB75_CLK             27
-#define DEFAULT_HUB75_LAT             26
-#define DEFAULT_HUB75_OE              25
+#define DEFAULT_HUB75_R1                   0
+#define DEFAULT_HUB75_G1                   2
+#define DEFAULT_HUB75_B1                   4
+#define DEFAULT_HUB75_R2                  16
+#define DEFAULT_HUB75_G2                  12
+#define DEFAULT_HUB75_B2                  17
+#define DEFAULT_HUB75_CH_A                 5
+#define DEFAULT_HUB75_CH_B                18
+#define DEFAULT_HUB75_CH_C                19
+#define DEFAULT_HUB75_CH_D                14
+#define DEFAULT_HUB75_CLK                 27
+#define DEFAULT_HUB75_LAT                 26
+#define DEFAULT_HUB75_OE                  25
 
 void getDefaultConfiguration(Config& config) {
   config.deviceId = DEFAULT_DEVICE_ID;
@@ -112,9 +130,14 @@ void getDefaultConfiguration(Config& config) {
   config.mqttInsecure = DEFAULT_MQTT_INSECURE;
   config.mqttServerPort = DEFAULT_MQTT_PORT;
   config.altitude = DEFAULT_ALTITUDE;
-  config.yellowThreshold = DEFAULT_YELLOW_THRESHOLD;
-  config.redThreshold = DEFAULT_RED_THRESHOLD;
-  config.darkRedThreshold = DEFAULT_DARK_RED_THRESHOLD;
+  config.co2GreenThreshold = DEFAULT_CO2_GREEN_THRESHOLD;
+  config.co2YellowThreshold = DEFAULT_CO2_YELLOW_THRESHOLD;
+  config.co2RedThreshold = DEFAULT_CO2_RED_THRESHOLD;
+  config.co2DarkRedThreshold = DEFAULT_CO2_DARK_RED_THRESHOLD;
+  config.iaqGreenThreshold = DEFAULT_IAQ_GREEN_THRESHOLD;
+  config.iaqYellowThreshold = DEFAULT_IAQ_YELLOW_THRESHOLD;
+  config.iaqRedThreshold = DEFAULT_IAQ_RED_THRESHOLD;
+  config.iaqDarkRedThreshold = DEFAULT_IAQ_DARK_RED_THRESHOLD;
   config.brightness = DEFAULT_BRIGHTNESS;
   config.ssd1306Rows = DEFAULT_SSD1306_ROWS;
   config.greenLed = DEFAULT_GREEN_LED;
@@ -122,8 +145,12 @@ void getDefaultConfiguration(Config& config) {
   config.redLed = DEFAULT_RED_LED;
   config.neopixelData = DEFAULT_NEOPIXEL_DATA;
   config.neopixelNumber = DEFAULT_NEOPIXEL_NUMBER;
+  config.neopixelMatrixData = DEFAULT_NEOPIXEL_MATRIX_DATA;
   config.featherMatrixData = DEFAULT_FEATHER_MATRIX_DATA;
   config.featherMatrixClock = DEFAULT_FEATHER_MATRIX_CLK;
+  config.matrixColumns = DEFAULT_MATRIX_COLUMNS;
+  config.matrixRows = DEFAULT_MATRIX_ROWS;
+  config.matrixLayout = DEFAULT_MATRIX_LAYOUT;
   config.hub75R1 = DEFAULT_HUB75_R1;
   config.hub75G1 = DEFAULT_HUB75_G1;
   config.hub75B1 = DEFAULT_HUB75_B1;
@@ -149,9 +176,14 @@ void logConfiguration(const Config& config) {
   ESP_LOGD(TAG, "mqttInsecure: %s", config.mqttInsecure ? "true" : "false");
   ESP_LOGD(TAG, "mqttPort: %u", config.mqttServerPort);
   ESP_LOGD(TAG, "altitude: %u", config.altitude);
-  ESP_LOGD(TAG, "yellowThreshold: %u", config.yellowThreshold);
-  ESP_LOGD(TAG, "redThreshold: %u", config.redThreshold);
-  ESP_LOGD(TAG, "darkRedThreshold: %u", config.darkRedThreshold);
+  ESP_LOGD(TAG, "co2GreenThreshold: %u", config.co2GreenThreshold);
+  ESP_LOGD(TAG, "co2YellowThreshold: %u", config.co2YellowThreshold);
+  ESP_LOGD(TAG, "co2RedThreshold: %u", config.co2RedThreshold);
+  ESP_LOGD(TAG, "co2DarkRedThreshold: %u", config.co2DarkRedThreshold);
+  ESP_LOGD(TAG, "iaqGreenThreshold: %u", config.iaqGreenThreshold);
+  ESP_LOGD(TAG, "iaqYellowThreshold: %u", config.iaqYellowThreshold);
+  ESP_LOGD(TAG, "iaqRedThreshold: %u", config.iaqRedThreshold);
+  ESP_LOGD(TAG, "iaqDarkRedThreshold: %u", config.iaqDarkRedThreshold);
   ESP_LOGD(TAG, "brightness: %u", config.brightness);
   ESP_LOGD(TAG, "ssd1306Rows: %u", config.ssd1306Rows);
   ESP_LOGD(TAG, "greenLed: %u", config.greenLed);
@@ -159,8 +191,12 @@ void logConfiguration(const Config& config) {
   ESP_LOGD(TAG, "redLed: %u", config.redLed);
   ESP_LOGD(TAG, "neopixelData: %u", config.neopixelData);
   ESP_LOGD(TAG, "neopixelNumber: %u", config.neopixelNumber);
+  ESP_LOGD(TAG, "neopixelMatrixData: %u", config.neopixelMatrixData);
   ESP_LOGD(TAG, "featherMatrixData: %u", config.featherMatrixData);
   ESP_LOGD(TAG, "featherMatrixClock: %u", config.featherMatrixClock);
+  ESP_LOGD(TAG, "matrixColumns: %u", config.matrixColumns);
+  ESP_LOGD(TAG, "matrixRows: %u", config.matrixRows);
+  ESP_LOGD(TAG, "matrixLayout: %u", config.matrixLayout);
   ESP_LOGD(TAG, "hub75R1: %u", config.hub75R1);
   ESP_LOGD(TAG, "hub75G1: %u", config.hub75G1);
   ESP_LOGD(TAG, "hub75B1: %u", config.hub75B1);
@@ -177,7 +213,7 @@ void logConfiguration(const Config& config) {
 }
 
 boolean loadConfiguration(Config& config) {
-  File file = LittleFS.open(CONFIG_FILENAME, "r");
+  File file = LittleFS.open(CONFIG_FILENAME, FILE_READ);
   if (!file) {
     ESP_LOGW(TAG, "Could not open config file");
     return false;
@@ -186,11 +222,12 @@ boolean loadConfiguration(Config& config) {
   // Allocate a temporary JsonDocument
   // Don't forget to change the capacity to match your requirements.
   // Use arduinojson.org/v6/assistant to compute the capacity.
-  StaticJsonDocument<CONFIG_SIZE> doc;
+  DynamicJsonDocument doc(CONFIG_SIZE);
 
   DeserializationError error = deserializeJson(doc, file);
   if (error) {
     ESP_LOGW(TAG, "Failed to parse config file: %s", error.f_str());
+    file.close();
     return false;
   }
 
@@ -212,9 +249,14 @@ boolean loadConfiguration(Config& config) {
   config.mqttUseTls = doc["mqttUseTls"] | DEFAULT_MQTT_USE_TLS;
   config.mqttInsecure = doc["mqttInsecure"] | DEFAULT_MQTT_INSECURE;
   config.altitude = doc["altitude"] | DEFAULT_ALTITUDE;
-  config.yellowThreshold = doc["yellowThreshold"] | DEFAULT_YELLOW_THRESHOLD;
-  config.redThreshold = doc["redThreshold"] | DEFAULT_RED_THRESHOLD;
-  config.darkRedThreshold = doc["darkRedThreshold"] | DEFAULT_DARK_RED_THRESHOLD;
+  config.co2GreenThreshold = doc["co2GreenThreshold"] | DEFAULT_CO2_GREEN_THRESHOLD;
+  config.co2YellowThreshold = doc["co2YellowThreshold"] | DEFAULT_CO2_YELLOW_THRESHOLD;
+  config.co2RedThreshold = doc["co2RedThreshold"] | DEFAULT_CO2_RED_THRESHOLD;
+  config.co2DarkRedThreshold = doc["co2DarkRedThreshold"] | DEFAULT_CO2_DARK_RED_THRESHOLD;
+  config.iaqGreenThreshold = doc["iaqGreenThreshold"] | DEFAULT_IAQ_GREEN_THRESHOLD;
+  config.iaqYellowThreshold = doc["iaqYellowThreshold"] | DEFAULT_IAQ_YELLOW_THRESHOLD;
+  config.iaqRedThreshold = doc["iaqRedThreshold"] | DEFAULT_IAQ_RED_THRESHOLD;
+  config.iaqDarkRedThreshold = doc["iaqDarkRedThreshold"] | DEFAULT_IAQ_DARK_RED_THRESHOLD;
   config.brightness = doc["brightness"] | DEFAULT_BRIGHTNESS;
   config.ssd1306Rows = doc["ssd1306Rows"] | DEFAULT_SSD1306_ROWS;
   config.greenLed = doc["greenLed"] | DEFAULT_GREEN_LED;
@@ -222,8 +264,12 @@ boolean loadConfiguration(Config& config) {
   config.redLed = doc["redLed"] | DEFAULT_RED_LED;
   config.neopixelData = doc["neopixelData"] | DEFAULT_NEOPIXEL_DATA;
   config.neopixelNumber = doc["neopixelNumber"] | DEFAULT_NEOPIXEL_NUMBER;
+  config.neopixelMatrixData = doc["neopixelMatrixData"] | DEFAULT_NEOPIXEL_MATRIX_DATA;
   config.featherMatrixData = doc["featherMatrixData"] | DEFAULT_FEATHER_MATRIX_DATA;
   config.featherMatrixClock = doc["featherMatrixClock"] | DEFAULT_FEATHER_MATRIX_CLK;
+  config.matrixColumns = doc["matrixColumns"] | DEFAULT_MATRIX_COLUMNS;
+  config.matrixRows = doc["matrixRows"] | DEFAULT_MATRIX_ROWS;
+  config.matrixLayout = doc["matrixLayout"] | DEFAULT_MATRIX_LAYOUT;
   config.hub75R1 = doc["hub75R1"] | DEFAULT_HUB75_R1;
   config.hub75G1 = doc["hub75G1"] | DEFAULT_HUB75_G1;
   config.hub75B1 = doc["hub75B1"] | DEFAULT_HUB75_B1;
@@ -239,8 +285,6 @@ boolean loadConfiguration(Config& config) {
   config.hub75Oe = doc["hub75Oe"] | DEFAULT_HUB75_OE;
 
   file.close();
-  ESP_LOGD(TAG, "###################### loadConfiguration");
-  logConfiguration(config);
   return true;
 }
 
@@ -253,13 +297,13 @@ boolean saveConfiguration(const Config& config) {
   }
 
   // Open file for writing
-  File file = LittleFS.open(CONFIG_FILENAME, "w");
+  File file = LittleFS.open(CONFIG_FILENAME, FILE_WRITE);
   if (!file) {
     ESP_LOGW(TAG, "Could not create config file for writing");
     return false;
   }
 
-  StaticJsonDocument<CONFIG_SIZE> doc;
+  DynamicJsonDocument doc(CONFIG_SIZE);
 
   // Set the values in the document
   doc["deviceId"] = config.deviceId;
@@ -271,9 +315,14 @@ boolean saveConfiguration(const Config& config) {
   doc["mqttUseTls"] = config.mqttUseTls;
   doc["mqttInsecure"] = config.mqttInsecure;
   doc["altitude"] = config.altitude;
-  doc["yellowThreshold"] = config.yellowThreshold;
-  doc["redThreshold"] = config.redThreshold;
-  doc["darkRedThreshold"] = config.darkRedThreshold;
+  doc["co2GreenThreshold"] = config.co2GreenThreshold;
+  doc["co2YellowThreshold"] = config.co2YellowThreshold;
+  doc["co2RedThreshold"] = config.co2RedThreshold;
+  doc["co2DarkRedThreshold"] = config.co2DarkRedThreshold;
+  doc["iaqGreenThreshold"] = config.iaqGreenThreshold;
+  doc["iaqYellowThreshold"] = config.iaqYellowThreshold;
+  doc["iaqRedThreshold"] = config.iaqRedThreshold;
+  doc["iaqDarkRedThreshold"] = config.iaqDarkRedThreshold;
   doc["brightness"] = config.brightness;
   doc["ssd1306Rows"] = config.ssd1306Rows;
   doc["greenLed"] = config.greenLed;
@@ -281,8 +330,12 @@ boolean saveConfiguration(const Config& config) {
   doc["redLed"] = config.redLed;
   doc["neopixelData"] = config.neopixelData;
   doc["neopixelNumber"] = config.neopixelNumber;
+  doc["neopixelMatrixData"] = config.neopixelMatrixData;
   doc["featherMatrixData"] = config.featherMatrixData;
   doc["featherMatrixClock"] = config.featherMatrixClock;
+  doc["matrixColumns"] = config.matrixColumns;
+  doc["matrixRows"] = config.matrixRows;
+  doc["matrixLayout"] = config.matrixLayout;
   doc["hub75R1"] = config.hub75R1;
   doc["hub75G1"] = config.hub75G1;
   doc["hub75B1"] = config.hub75B1;
@@ -313,7 +366,7 @@ boolean saveConfiguration(const Config& config) {
 // Prints the content of a file to the Serial
 void printFile() {
   // Open file for reading
-  File file = LittleFS.open(CONFIG_FILENAME, "r");
+  File file = LittleFS.open(CONFIG_FILENAME, FILE_READ);
   if (!file) {
     ESP_LOGW(TAG, "Could not open config file");
     return;

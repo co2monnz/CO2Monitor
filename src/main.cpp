@@ -1,22 +1,29 @@
 #include <globals.h>
 #include <Arduino.h>
 #include <config.h>
-#include <configManager.h>
-#include <WiFi.h>
 
+#include <WiFi.h>
+#include <Wire.h>
+#include <i2c.h>
+#include <esp_event.h>
+#include <esp_err.h>
+#include <esp_task_wdt.h>
+#include <rom/rtc.h>
+
+#include <configManager.h>
 #include <mqtt.h>
+#include <sensors.h>
 #include <scd30.h>
 #include <scd40.h>
 #include <sps_30.h>
 #include <housekeeping.h>
-#include <Wire.h>
 #include <lcd.h>
 #include <trafficLight.h>
 #include <neopixel.h>
+#include <neopixelMatrix.h>
 #include <featherMatrix.h>
 #include <hub75.h>
 #include <bme680.h>
-#include <i2c.h>
 #include <wifiManager.h>
 #include <ota.h>
 
@@ -27,24 +34,42 @@ Model* model;
 LCD* lcd;
 TrafficLight* trafficLight;
 Neopixel* neopixel;
+NeopixelMatrix* neopixelMatrix;
 FeatherMatrix* featherMatrix;
 HUB75* hub75;
 SCD30* scd30;
 SCD40* scd40;
 SPS_30* sps30;
 BME680* bme680;
-TaskHandle_t scd30Task;
-TaskHandle_t scd40Task;
-TaskHandle_t sps30Task;
-TaskHandle_t bme680Task;
+TaskHandle_t sensorsTask;
+TaskHandle_t neopixelMatrixTask;
 
 bool hasLEDs = false;
 bool hasNeoPixel = false;
 bool hasFeatherMatrix = false;
+bool hasNeopixelMatrix = false;
 bool hasHub75 = false;
 
-void stopHub75DMA() {
+const uint32_t debounceDelay = 50;
+volatile uint32_t lastBtnDebounceTime = 0;
+volatile uint8_t buttonState = 0;
+uint8_t oldConfirmedButtonState = 0;
+uint32_t lastConfirmedBtnPressedTime = 0;
+
+volatile uint8_t wifiDisconnected = 0;
+uint32_t lastWifiReconnectAttempt = 0;
+
+void ICACHE_RAM_ATTR buttonHandler() {
+  buttonState = (digitalRead(BTN_1) ? 0 : 1);
+  lastBtnDebounceTime = millis();
+}
+
+void prepareOta() {
   if (hasHub75 && hub75) hub75->stopDMA();
+  if (hasNeopixelMatrix && neopixelMatrix) {
+    hasNeopixelMatrix = false;
+    neopixelMatrix->stop();
+  }
 }
 
 void updateMessage(char const* msg) {
@@ -70,13 +95,20 @@ void modelUpdatedEvt(uint16_t mask, TrafficLightStatus oldStatus, TrafficLightSt
   if (hasLEDs && trafficLight) trafficLight->update(mask, oldStatus, newStatus);
   if (hasNeoPixel && neopixel) neopixel->update(mask, oldStatus, newStatus);
   if (hasFeatherMatrix && featherMatrix) featherMatrix->update(mask, oldStatus, newStatus);
+  if (hasNeopixelMatrix && neopixelMatrix) neopixelMatrix->update(mask, oldStatus, newStatus);
   if (hasHub75 && hub75) hub75->update(mask, oldStatus, newStatus);
-  if (mask != M_NONE) mqtt::publishSensors(mask);
+  if ((mask & M_PRESSURE) && I2C::scd40Present() && scd40) scd40->setAmbientPressure(model->getPressure());
+  if ((mask & M_PRESSURE) && I2C::scd30Present() && scd30) scd30->setAmbientPressure(model->getPressure());
+  if ((mask & ~M_CONFIG_CHANGED) != M_NONE) mqtt::publishSensors(mask);
 }
 
 void calibrateCo2SensorCallback(uint16_t co2Reference) {
+  ESP_LOGI(TAG, "Starting calibration");
+  if (lcd) lcd->setPriorityMessage("Starting calibration");
   if (I2C::scd30Present() && scd30) scd30->calibrateScd30ToReference(co2Reference);
   if (I2C::scd40Present() && scd40) scd40->calibrateScd40ToReference(co2Reference);
+  vTaskDelay(pdMS_TO_TICKS(200));
+  if (lcd) lcd->clearPriorityMessage();
 }
 
 char* scdSerial() {
@@ -116,17 +148,7 @@ uint8_t getSPS30Status() {
   return false;
 }
 
-void setup() {
-  pinMode(LED_PIN, OUTPUT);
-  digitalWrite(LED_PIN, LOW);
-  pinMode(TRIGGER_PIN, INPUT_PULLUP);
-  Serial.begin(115200);
-  esp_log_level_set("*", ESP_LOG_VERBOSE);
-  ESP_LOGI(TAG, "CO2 Monitor v%s. Built from %s @ %s", APP_VERSION, SRC_REVISION, BUILD_TIMESTAMP);
-
-  // try to connect with known settings
-  WiFi.begin();
-
+void logCoreInfo() {
   esp_chip_info_t chip_info;
   esp_chip_info(&chip_info);
   ESP_LOGI(TAG,
@@ -148,25 +170,69 @@ void setup() {
     ESP.getChipRevision(), ESP.getCpuFreqMHz(), ESP.getSdkVersion());
   ESP_LOGI(TAG, "Flash Size %d, Flash Speed %d", ESP.getFlashChipSize(),
     ESP.getFlashChipSpeed());
+}
+
+void eventHandler(void* event_handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
+  if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
+    ESP_LOGD(TAG, "eventHandler IP_EVENT IP_EVENT_STA_GOT_IP");
+  } else if (event_base == WIFI_EVENT) {
+    switch (event_id) {
+      case WIFI_EVENT_STA_CONNECTED:
+        ESP_LOGD(TAG, "eventHandler WIFI_EVENT WIFI_EVENT_STA_CONNECTED");
+        wifiDisconnected = 0;
+        digitalWrite(LED_PIN, HIGH);
+        break;
+      case WIFI_EVENT_STA_DISCONNECTED:
+        ESP_LOGD(TAG, "eventHandler WIFI_EVENT WIFI_EVENT_STA_DISCONNECTED");
+        wifiDisconnected = 1;
+        digitalWrite(LED_PIN, LOW);
+        break;
+      default:
+        ESP_LOGD(TAG, "eventHandler WIFI_EVENT %u", event_id);
+        break;
+    }
+  } else {
+    ESP_LOGD(TAG, "eventHandler %s %u", event_base, event_id);
+  }
+}
+
+void setup() {
+  esp_task_wdt_init(20, true);
+
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, LOW);
+  pinMode(BTN_1, INPUT_PULLUP);
+  Serial.begin(115200);
+  esp_log_level_set("*", ESP_LOG_VERBOSE);
+  ESP_LOGI(TAG, "CO2 Monitor v%s. Built from %s @ %s", APP_VERSION, SRC_REVISION, BUILD_TIMESTAMP);
+
+  model = new Model(modelUpdatedEvt);
+
+  logCoreInfo();
+
+  RESET_REASON resetReason = rtc_get_reset_reason(0);
+
+  ESP_ERROR_CHECK(esp_event_loop_create_default());
+  ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, eventHandler, NULL));
+  ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, eventHandler, NULL));
 
   setupConfigManager();
-  printFile();
   if (!loadConfiguration(config)) {
     getDefaultConfiguration(config);
     saveConfiguration(config);
-    printFile();
   }
+  logConfiguration(config);
+
   hasLEDs = (config.greenLed != 0 && config.yellowLed != 0 && config.redLed != 0);
   hasNeoPixel = (config.neopixelData != 0 && config.neopixelNumber != 0);
   hasFeatherMatrix = (config.featherMatrixClock != 0 && config.featherMatrixData != 0);
+  hasNeopixelMatrix = (config.neopixelMatrixData != 0 && config.matrixColumns != 0 && config.matrixRows != 0);
   hasHub75 = (config.hub75B1 != 0 && config.hub75B2 != 0 && config.hub75ChA != 0 && config.hub75ChB != 0 && config.hub75ChC != 0 && config.hub75ChD != 0
     && config.hub75Clk != 0 && config.hub75G1 != 0 && config.hub75G2 != 0 && config.hub75Lat != 0 && config.hub75Oe != 0 && config.hub75R1 != 0 && config.hub75R2 != 0);
 
   Wire.begin((int)SDA, (int)SCL, (uint32_t)I2C_CLK);
 
   I2C::initI2C();
-
-  model = new Model(modelUpdatedEvt);
 
   if (I2C::scd30Present()) scd30 = new SCD30(&Wire, model, updateMessage);
   if (I2C::scd40Present()) scd40 = new SCD40(&Wire, model, updateMessage);
@@ -177,7 +243,12 @@ void setup() {
   if (hasLEDs) trafficLight = new TrafficLight(model, config.redLed, config.yellowLed, config.greenLed);
   if (hasNeoPixel) neopixel = new Neopixel(model, config.neopixelData, config.neopixelNumber);
   if (hasFeatherMatrix) featherMatrix = new FeatherMatrix(model, config.featherMatrixData, config.featherMatrixClock);
+  if (hasNeopixelMatrix) neopixelMatrix = new NeopixelMatrix(model, config.neopixelMatrixData, config.matrixColumns, config.matrixRows, config.matrixLayout);
   if (hasHub75) hub75 = new HUB75(model);
+
+  // try to connect with known settings
+  WiFi.begin();
+  lastWifiReconnectAttempt = millis();
 
   mqtt::setupMqtt(
     model,
@@ -190,81 +261,78 @@ void setup() {
     cleanSPS30,
     getSPS30Status);
 
+  char msg[128];
+  sprintf(msg, "Reset reason: %u", resetReason);
+  mqtt::publishStatusMsg(msg);
+
   xTaskCreatePinnedToCore(mqtt::mqttLoop,  // task function
     "mqttLoop",         // name of task
     8192,               // stack size of task
     (void*)1,           // parameter of the task
     2,                  // priority of the task
-    &mqtt::mqttTask,          // task handle
+    &mqtt::mqttTask,    // task handle
     0);                 // CPU core
 
   xTaskCreatePinnedToCore(OTA::otaLoop,  // task function
-    "otaLoop",         // name of task
+    "otaLoop",          // name of task
     8192,               // stack size of task
     (void*)1,           // parameter of the task
     2,                  // priority of the task
-    &OTA::otaTask,          // task handle
+    &OTA::otaTask,      // task handle
     1);                 // CPU core
 
-  if (I2C::scd30Present()) {
-    scd30Task = scd30->start(
-      "scd30Loop",        // name of task
-      4096,               // stack size of task
-      2,                  // priority of the task
-      1);                 // CPU core
-  }
+  Sensors::setupSensorsLoop(scd30, scd40, sps30, bme680);
+  sensorsTask = Sensors::start(
+    "sensorsLoop",      // name of task
+    4096,               // stack size of task
+    2,                  // priority of the task
+    1);                 // CPU core
 
-  if (I2C::scd40Present()) {
-    scd40Task = scd40->start(
-      "scd40Loop",        // name of task
-      4096,               // stack size of task
-      2,                  // priority of the task
-      1);                 // CPU core
-  }
-
-  if (I2C::sps30Present()) {
-    sps30Task = sps30->start(
-      "sps30Loop",        // name of task
-      4096,               // stack size of task
-      2,                  // priority of the task
-      1);                 // CPU core
-  }
-
-  if (I2C::bme680Present()) {
-    bme680Task = bme680->start(
-      "bme680Loop",       // name of task
-      4096,               // stack size of task
-      2,                  // priority of the task
-      1);                 // CPU core
+  if (hasNeopixelMatrix) {
+    neopixelMatrixTask = neopixelMatrix->start(
+      "neopixelMatrixLoop",
+      4096,
+      3,
+      1);
   }
 
   housekeeping::cyclicTimer.attach(30, housekeeping::doHousekeeping);
 
-  WifiManager::setupWifi(setPriorityMessage, clearPriorityMessage);
+  OTA::setupOta(prepareOta, setPriorityMessage, clearPriorityMessage);
 
-  OTA::setupOta(stopHub75DMA);
+  attachInterrupt(BTN_1, buttonHandler, CHANGE);
 
   ESP_LOGI(TAG, "Setup done.");
 #ifdef SHOW_DEBUG_MSGS
-  if (I2C::lcdPresent()) {
+  if (lcd) {
     lcd->updateMessage("Setup done.");
   }
 #endif
 }
 
 void loop() {
-  if ((digitalRead(TRIGGER_PIN) == LOW)) {
-    while (digitalRead(TRIGGER_PIN) == LOW);
-    digitalWrite(LED_PIN, LOW);
-    stopHub75DMA();
-    WifiManager::startConfigPortal(updateMessage, setPriorityMessage, clearPriorityMessage);
+  if (buttonState != oldConfirmedButtonState && (millis() - lastBtnDebounceTime) > debounceDelay) {
+    oldConfirmedButtonState = buttonState;
+    if (oldConfirmedButtonState == 1) {
+      lastConfirmedBtnPressedTime = millis();
+    } else if (oldConfirmedButtonState == 0) {
+      uint32_t btnPressTime = millis() - lastConfirmedBtnPressedTime;
+      ESP_LOGD(TAG, "lastConfirmedBtnPressedTime - millis() %u", btnPressTime);
+      if (btnPressTime < 2000) {
+        digitalWrite(LED_PIN, LOW);
+        prepareOta();
+        WifiManager::startConfigPortal(updateMessage, setPriorityMessage, clearPriorityMessage);
+      } else if (btnPressTime > 5000) {
+        calibrateCo2SensorCallback(420);
+      }
+    }
   }
 
-  if (WiFi.status() != WL_CONNECTED) {
-    digitalWrite(LED_PIN, LOW);
-    WifiManager::setupWifi(setPriorityMessage, clearPriorityMessage);
-  } else if (WiFi.status() == WL_CONNECTED) {
-    digitalWrite(LED_PIN, HIGH);
+  if (wifiDisconnected == 1 && !WiFi.isConnected()) {
+    if (millis() - lastWifiReconnectAttempt < 60000) return;
+    WiFi.begin();
+    lastWifiReconnectAttempt = millis();
   }
-  vTaskDelay(pdMS_TO_TICKS(1000));
+
+  vTaskDelay(pdMS_TO_TICKS(50));
 }

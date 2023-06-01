@@ -1,4 +1,4 @@
-#include "globals.h"
+#include <globals.h>
 #include <config.h>
 #include <sps_30.h>
 #include <model.h>
@@ -18,7 +18,7 @@ boolean SPS_30::checkError(uint16_t error, char const* msg) {
 #ifdef SHOW_DEBUG_MSGS
     this->updateMessageCallback("error SPS30 cmd");
 #endif
-    while (!I2C::takeMutex(pdMS_TO_TICKS(portMAX_DELAY)));
+    while (!I2C::takeMutex(portMAX_DELAY));
     return false;
   }
   return true;
@@ -32,7 +32,7 @@ SPS_30::SPS_30(TwoWire* wire, Model* _model, updateMessageCallback_t _updateMess
 
   //  sps30->EnableDebugging(2);
 
-  if (!I2C::takeMutex(pdMS_TO_TICKS(portMAX_DELAY))) return;
+  if (!I2C::takeMutex(portMAX_DELAY)) return;
 
   if (sps30->begin(wire) == false) {
     ESP_LOGD(TAG, "Could not initialise SPS30!");
@@ -67,18 +67,21 @@ SPS_30::SPS_30(TwoWire* wire, Model* _model, updateMessageCallback_t _updateMess
 }
 
 SPS_30::~SPS_30() {
-  if (this->task) vTaskDelete(this->task);
   if (this->sps30) delete sps30;
 }
 
+uint32_t SPS_30::getInterval() {
+  return 60;
+}
+
 boolean SPS_30::readSps30() {
-  ESP_LOGD(TAG, "readSps30");
+  //  ESP_LOGD(TAG, "readSps30");
 #ifdef SHOW_DEBUG_MSGS
   this->updateMessageCallback("readSps30");
 #endif
   struct sps_values values;
 
-  if (!I2C::takeMutex(pdMS_TO_TICKS(1000))) return false;
+  if (!I2C::takeMutex(I2C_MUTEX_DEF_WAIT)) return false;
   if (!sps30->start()) {
     ESP_LOGD(TAG, "Could not start SPS30!");
     I2C::giveMutex();
@@ -90,7 +93,7 @@ boolean SPS_30::readSps30() {
 
   I2C::giveMutex();
   delay(5000);
-  if (!I2C::takeMutex(pdMS_TO_TICKS(1000))) return false;
+  if (!I2C::takeMutex(I2C_MUTEX_DEF_WAIT)) return false;
 
   uint8_t result = SPS30_ERR_TIMEOUT;
   for (int i = 0;i < 3 && result == SPS30_ERR_TIMEOUT;i++) {
@@ -110,19 +113,18 @@ boolean SPS_30::readSps30() {
 #ifdef SHOW_DEBUG_MSGS
   this->updateMessageCallback("");
 #endif
-  ESP_LOGD(TAG, "result: %x", result);
   if (result == SPS30_ERR_OK) {
     ESP_LOGD(TAG, "SPS30 MassPM1:%.1f, MassPM2:%.1f, MassPM4:%.1f, MassPM10:%.1f, NumPM0:%.1f, NumPM1:%.1f, NumPM2:%.1f, NumPM4:%.1f, NumPM10:%.1f, PartSize:%.1f",
       values.MassPM1, values.MassPM2, values.MassPM4, values.MassPM10, values.NumPM0, values.NumPM1, values.NumPM2, values.NumPM4, values.NumPM10, values.PartSize);
     model->updateModel((uint16_t)(values.NumPM0 + 0.5f), (uint16_t)(values.NumPM1 + 0.5f), (uint16_t)(values.NumPM2 + 0.5f), (uint16_t)(values.NumPM4 + 0.5f), (uint16_t)(values.NumPM10 + 0.5f));
   }
-  ESP_LOGD(TAG, "Sps30 done");
+  //  ESP_LOGD(TAG, "Sps30 done");
   return (result == SPS30_ERR_OK);
 }
 
 uint8_t SPS_30::getStatus() {
   ESP_LOGD(TAG, "getStatus");
-  if (!I2C::takeMutex(pdMS_TO_TICKS(1000))) return 0xff;
+  if (!I2C::takeMutex(I2C_MUTEX_DEF_WAIT)) return 0xff;
   uint8_t value = 0;
   uint8_t result = sps30->GetStatusReg(&value);
   I2C::giveMutex();
@@ -132,7 +134,7 @@ uint8_t SPS_30::getStatus() {
 
 uint32_t SPS_30::getAutoCleanInterval() {
   ESP_LOGD(TAG, "getAutoCleanInterval");
-  if (!I2C::takeMutex(pdMS_TO_TICKS(1000))) return 0xffffffff;
+  if (!I2C::takeMutex(I2C_MUTEX_DEF_WAIT)) return 0xffffffff;
   uint32_t value = 0;
   uint8_t result = sps30->GetAutoCleanInt(&value);
   I2C::giveMutex();
@@ -142,7 +144,7 @@ uint32_t SPS_30::getAutoCleanInterval() {
 
 boolean SPS_30::setAutoCleanInterval(uint32_t intervalInSeconds) {
   ESP_LOGD(TAG, "setAutoCleanInterval %u", intervalInSeconds);
-  if (!I2C::takeMutex(pdMS_TO_TICKS(1000))) return false;
+  if (!I2C::takeMutex(I2C_MUTEX_DEF_WAIT)) return false;
   uint8_t result = sps30->SetAutoCleanInt(intervalInSeconds);
   I2C::giveMutex();
   return (result == SPS30_ERR_OK);
@@ -153,7 +155,7 @@ boolean SPS_30::clean() {
 #ifdef SHOW_DEBUG_MSGS
   this->updateMessageCallback("clean sps30");
 #endif
-  if (!I2C::takeMutex(pdMS_TO_TICKS(1000))) return false;
+  if (!I2C::takeMutex(I2C_MUTEX_DEF_WAIT)) return false;
 
   if (!sps30->start()) {
     ESP_LOGD(TAG, "Could not start SPS30!");
@@ -165,7 +167,7 @@ boolean SPS_30::clean() {
   }
   I2C::giveMutex();
   delay(5000);
-  if (!I2C::takeMutex(pdMS_TO_TICKS(1000))) return false;
+  if (!I2C::takeMutex(I2C_MUTEX_DEF_WAIT)) return false;
   boolean result = sps30->clean();
   if (!sps30->stop()) {
     ESP_LOGD(TAG, "Could not stop SPS30!");
@@ -180,26 +182,4 @@ boolean SPS_30::clean() {
   this->updateMessageCallback("");
 #endif
   return result;
-}
-
-TaskHandle_t SPS_30::start(const char* name, uint32_t stackSize, UBaseType_t priority, BaseType_t core) {
-  xTaskCreatePinnedToCore(
-    this->sps30Loop,  // task function
-    name,             // name of task
-    stackSize,        // stack size of task
-    this,             // parameter of the task
-    priority,         // priority of the task
-    &task,            // task handle
-    core);            // CPU core
-  return this->task;
-}
-
-void SPS_30::sps30Loop(void* pvParameters) {
-  SPS_30* instance = (SPS_30*)pvParameters;
-
-  while (1) {
-    vTaskDelay(pdMS_TO_TICKS(60000));
-    instance->readSps30();
-  }
-  vTaskDelete(NULL);
 }

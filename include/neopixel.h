@@ -1,5 +1,5 @@
-#ifndef _TRAFFIC_LIGHT_H
-#define _TRAFFIC_LIGHT_H
+#ifndef _NEOPIXEL_H
+#define _NEOPIXEL_H
 
 #include <globals.h>
 #include <Arduino.h>
@@ -14,6 +14,7 @@ public:
   ~Neopixel();
 
   void update(uint16_t mask, TrafficLightStatus oldStatus, TrafficLightStatus newStatus);
+  void off();
 
 private:
   void fill(uint32_t c);
@@ -23,6 +24,12 @@ private:
   Model* model;
   Ticker* cyclicTimer;
   boolean toggle;
+
+  uint32_t colourRed;
+  uint32_t colourYellow;
+  uint32_t colourGreen;
+  uint32_t colourPurple;
+  uint32_t colourOff;
 };
 
 #endif
