@@ -1,6 +1,6 @@
 {
   "deviceId": 45,
-  "mqttTopic": "co2monitor",
+  "mqttTopic": "co2monitor-dev",
   "mqttUsername": "co2monitor",
   "mqttPassword": "co2monitor",
   "mqttHost": "mqtt-dev.co2mon.nz",
