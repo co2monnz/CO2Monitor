@@ -13,7 +13,7 @@
 #define NUM_LEDS	        3
 #define BITS_PER_LED_CMD	24
 #define LED_BUFFER_ITEMS	(NUM_LEDS * BITS_PER_LED_CMD)
-#define LED_RMT_TX_CHANNEL	RMT_CHANNEL_6
+#define LED_RMT_TX_CHANNEL	RMT_CHANNEL_2
 
 // Timing calculations
 const static uint32_t CpuFreq = 80000000L; // 80MHZ
@@ -87,12 +87,14 @@ class NeopixelIDF : public Component, public LightOutput {
                     mask >>= 1;
                 }
             }
-            if (rmt_write_items(LED_RMT_TX_CHANNEL, led_data_buffer, LED_BUFFER_ITEMS, false) != ESP_OK) {
-                ESP_LOGE(TAG, "Failed to write RMT items");
+            esp_err_t err = rmt_write_items(LED_RMT_TX_CHANNEL, led_data_buffer, LED_BUFFER_ITEMS, false);
+            if (err != ESP_OK) {
+                ESP_LOGE(TAG, "Failed to write RMT items: %d", err);
                 return;
             }
-            if (rmt_wait_tx_done(LED_RMT_TX_CHANNEL, portMAX_DELAY) != ESP_OK) {
-                ESP_LOGE(TAG, "Failed to wait for RMT transmission to finish");
+            err = rmt_wait_tx_done(LED_RMT_TX_CHANNEL, portMAX_DELAY);
+            if (err != ESP_OK) {
+                ESP_LOGE(TAG, "Failed to wait for RMT transmission to finish: %d", err);
                 return;
             }
         }
