@@ -1,13 +1,14 @@
-# ESP32
+# ESP32-S3
 substitutions:
-  name: co2monitor
-  display_rotation: "0"
+  name: co2monnz
+  display_rotation: "180"
 
 packages:
   base: !include common/base.yaml
 
 esp32:
-  board:  esp32doit-devkit-v1
+  board:  co2monnz-v1
+  variant: ESP32S3
   framework:
     type: esp-idf
     version: recommended
@@ -15,6 +16,6 @@ esp32:
       CONFIG_BT_BLE_42_FEATURES_SUPPORTED: y
 
 i2c:
-  scl: GPIO22
-  sda: GPIO21
+  scl: GPIO21
+  sda: GPIO14
   frequency: 100kHz

@@ -1,5 +1,5 @@
 esphome:
-  name: co2monitor-idf
+  name: "${name}"
   name_add_mac_suffix: true
   platformio_options:
     upload_speed: 921600
@@ -38,15 +38,6 @@ esphome:
             state: off
       - lambda: |-
           mqttSetup();
-
-esp32:
-  board:  co2monnz-v1
-  variant: ESP32S3
-  framework:
-    type: esp-idf
-    version: recommended
-    sdkconfig_options:
-      CONFIG_BT_BLE_42_FEATURES_SUPPORTED: y
 
 globals:
   - id: node_id
@@ -123,11 +114,6 @@ output:
       number: GPIO2
       mode:
         output: true
-
-i2c:
-  scl: GPIO21
-  sda: GPIO14
-  frequency: 100kHz
 
 sensor:
   - platform: scd4x
@@ -210,7 +196,7 @@ display:
     model: "SSD1306 128x64"
     address: 0x3C
     brightness: 100%
-    rotation: 180
+    rotation: "${display_rotation}"
     id: display1
     lambda: |-
       if (id(wifi2).is_connected()) {
