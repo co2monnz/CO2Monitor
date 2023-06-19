@@ -57,7 +57,12 @@ void publishConfiguration() {
         return;
     }
     for (auto it = CONFIG_VARS.begin(); it != CONFIG_VARS.end(); it++) {
-        cJSON *t = cJSON_CreateNumber(id(it->second.var));
+        cJSON *t = NULL;
+        if (it->second.var != NULL) {
+            t = cJSON_CreateNumber(id(it->second.var));
+        } else if (it->second.fetch != NULL) {
+            t = cJSON_CreateNumber(it->second.fetch());
+        }
         if (t == NULL) {
             logSerializationError(it->first);
             return;
@@ -115,6 +120,7 @@ void syncBrightness(double brightness) {
 double getBrightness() {
     float bf;
     id(leds).current_values_as_brightness(&bf);
+    ESP_LOGD("getBrightness", "Got %.2f from leds; returning %f", bf, bf*255);
     return double(bf*255);
 }
 
