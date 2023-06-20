@@ -76,6 +76,8 @@ void publishConfiguration() {
         ct.substr(13, 2) + ct.substr(16, 2) + ct.substr(19, 2) + "-[esphome" ESPHOME_VERSION "]";
     ESP_LOGD("getConfig", "App Version is %s", v.c_str());
     cJSON_AddItemToObject(config, "appVersion", cJSON_CreateString(v.c_str()));
+    // Add MAC
+    cJSON_AddItemToObject(config, "mac", cJSON_CreateString(get_mac_address().c_str()));
 
     // Serialize
     char *configStr = cJSON_Print(config);
