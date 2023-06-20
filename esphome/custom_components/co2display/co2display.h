@@ -43,16 +43,16 @@ public:
     this->improv = v;
     // Prep for showing QR code, and dim the LEDs to improve scannability.
     if (this->improv) {
-      this->leds->current_values_as_brightness(&this->oldBrightness);
+      this->oldBrightness = this->leds->current_values.get_brightness();
       ESP_LOGD(LOGTAG, "Stored %.1f as pre improv brightness", this->oldBrightness);
-      this->updateLeds(-1); // TODO: FIX   this->updateLeds(0.4);
+      this->updateLeds(0.4);
       // Prep a QR code
       this->qr = new qr_code::QrCode();
       this->qr->set_value(SETUP_URL);
       this->qr->set_ecc(::qrcodegen_Ecc_LOW);
     } else {
       ESP_LOGD(LOGTAG, "Restoring %.1f as pre improv brightness", this->oldBrightness);
-      this->updateLeds(-1); // TODO: FIX   this->updateLeds(this->oldBrightness);
+      this->updateLeds(this->oldBrightness);
       free(this->qr);
       this->qr = NULL;
     }

@@ -118,8 +118,7 @@ void syncBrightness(double brightness) {
     id(leds).make_call().set_brightness(b).set_save(true).perform();
 }
 double getBrightness() {
-    float bf;
-    id(leds).current_values_as_brightness(&bf);
+    float bf = id(leds).current_values.get_brightness();
     ESP_LOGD("getBrightness", "Got %.2f from leds; returning %f", bf, bf*255);
     return double(bf*255);
 }
