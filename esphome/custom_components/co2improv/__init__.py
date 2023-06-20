@@ -1,12 +1,13 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
+from esphome.components import binary_sensor
 from esphome.components import wifi
 from esphome.const import CONF_ID
 
 AUTO_LOAD = []
 
 co2_improv_ns = cg.esphome_ns.namespace('co2mon')
-Co2Improv = co2_improv_ns.class_('Co2Improv', cg.Component)
+Co2Improv = co2_improv_ns.class_('Co2Improv', binary_sensor.BinarySensor, cg.Component)
 
 CONF_WIFI_ID = "wifi_id"
 

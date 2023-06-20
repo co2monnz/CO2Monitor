@@ -1,6 +1,7 @@
 #include "esphome.h"
 #include "esphome/core/component.h"
 #include "esphome/core/log.h"
+#include "esphome/components/binary_sensor/binary_sensor.h"
 #include "esphome/components/esp32_ble/ble.h"
 #include "esphome/components/esp32_improv/esp32_improv_component.h"
 #include "esphome/components/wifi/wifi_component.h"
@@ -22,10 +23,11 @@ void stopAdvertising() {
   }
 }
 
-class Co2Improv : public Component {
+class Co2Improv : public binary_sensor::BinarySensor, public Component {
 public:
   void setup() override {
     inImprov = false;
+    this->publish_initial_state(inImprov);
     // Make sure BT is off (after a delay to let the stack init)
     this->set_timeout(STOP_TIMER, 10000, stopAdvertising);
   }
@@ -38,7 +40,7 @@ public:
     if (wc->is_connected()) {
       ESP_LOGD(TAG, "Improv looks to have succeeded! Leaving improve mode.");
       this->set_timeout(STOP_TIMER, 2000, stopAdvertising);
-      inImprov = false;
+      set_state(false);
       return;
     }
     // Check for timeout
@@ -48,8 +50,16 @@ public:
       // Give up.
       ESP_LOGD(TAG, "Improv timed out after 120s. Disabling advertisements!");
       stopAdvertising();
-      inImprov = false;
+      set_state(false);
       wc->enable(); // re-enable WiFi.
+    }
+  }
+
+  void set_state(bool s) {
+    inImprov = s;
+    this->publish_state(inImprov);
+    if (inImprov) {
+      improvStart = esp_timer_get_time();
     }
   }
 
@@ -63,7 +73,7 @@ public:
     if (inImprov) {
       ESP_LOGD(TAG, "Turning off improv!");
       stopAdvertising();
-      inImprov = false;
+      set_state(false);
       return;
     }
     // Make sure we're not about to cancel on a timer
@@ -74,8 +84,7 @@ public:
     ESP_LOGD(TAG, "Starting improv!");
     esp32_improv::global_improv_component->start();
     esp32_ble::global_ble->get_advertising()->start();
-    inImprov = true;
-    improvStart = esp_timer_get_time();
+    set_state(true);
   }
 
 private:

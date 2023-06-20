@@ -66,7 +66,7 @@ wifi:
 
 esp32_improv:
   id: improvConf
-  authorizer: boot
+  authorizer: improvMgr
   status_indicator: blue_led
 
 co2improv:
@@ -105,8 +105,7 @@ binary_sensor:
     id: boot
     internal: true
     on_click:
-      - min_length: 2s
-        max_length: 5s
+      - max_length: 5s
         then:
           - lambda: |-
               improvMgr->startImprov();
