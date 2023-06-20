@@ -186,6 +186,7 @@ light:
       id: leds
       default_transition_length: 0s
       internal: true
+      restore_mode: "RESTORE_AND_OFF"
 
 font:
   - file: "fonts/Roboto-Regular.ttf"

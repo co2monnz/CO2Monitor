@@ -115,7 +115,7 @@ void syncBrightness(double brightness) {
     double b = brightness;
     b /= 255;
     ESP_LOGD("syncBrightness", "Setting brightness to %.1f from %f", b, brightness);
-    id(leds).turn_on().set_brightness(b).perform();
+    id(leds).make_call().set_brightness(b).set_save(true).perform();
 }
 double getBrightness() {
     float bf;
