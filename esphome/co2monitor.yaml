@@ -2,6 +2,7 @@
 substitutions:
   name: co2monitor
   display_rotation: "0"
+  log_level: DEBUG
 
 packages:
   base: !include common/base.yaml

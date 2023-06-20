@@ -2,6 +2,7 @@
 substitutions:
   name: co2monnz
   display_rotation: "180"
+  log_level: DEBUG
 
 packages:
   base: !include common/base.yaml
