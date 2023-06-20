@@ -181,6 +181,17 @@ void mqttDebugDump(const std::string &topic, const std::string &payload)
     App.schedule_dump_config();
 }
 
+void mqttClearWiFi(const std::string &topic, const std::string &payload)
+{
+    ESP_LOGD("setConfig", "Got clear WiFi request.");
+    // Clear credentials
+    id(wifi2).save_wifi_sta("", "");
+    id(wifi2).clear_sta();
+    // Restart wifi
+    id(wifi2).disable();
+    id(wifi2).enable();
+}
+
 
 void mqttSetup() {
     // Setup config var mapping.
@@ -215,5 +226,7 @@ void mqttSetup() {
     id(mqttclient).subscribe(topic, mqttGetConfig, 2);
     sprintf(topic, "%s/down/debugDump", idS);
     id(mqttclient).subscribe(topic, mqttDebugDump, 2);
+    sprintf(topic, "%s/down/clearWiFi", idS);
+    id(mqttclient).subscribe(topic, mqttClearWiFi, 2);
     ESP_LOGD("mqtt", "Subscriptions setup");
 }
