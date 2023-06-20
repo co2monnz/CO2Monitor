@@ -168,6 +168,17 @@ void mqttSetConfig(const std::string &topic, const std::string &payload)
     }
 }
 
+void mqttSetTempOffset(const std::string &topic, const std::string &payload)
+{
+    float t = atof(payload.c_str());
+    if (t >= 0.0f && t <= 20.0f) {
+        ESP_LOGD("setConfig", "Got new temp offset: %s", payload.c_str());
+        syncTempOffset(t);
+    } else {
+        ESP_LOGD("setConfig", "Rejecting invalid temp offset: %s", payload.c_str());
+    }
+}
+
 void mqttGetConfig(const std::string &topic, const std::string &payload)
 {
     ESP_LOGD("setConfig", "Got config request");
@@ -222,6 +233,8 @@ void mqttSetup() {
     // Config handler
     sprintf(topic, "%s/down/setConfig", idS);
     id(mqttclient).subscribe(topic, mqttSetConfig, 2);
+    sprintf(topic, "%s/down/setTemperatureOffset", idS);
+    id(mqttclient).subscribe(topic, mqttSetTempOffset, 2);
     sprintf(topic, "%s/down/getConfig", idS);
     id(mqttclient).subscribe(topic, mqttGetConfig, 2);
     sprintf(topic, "%s/down/debugDump", idS);
