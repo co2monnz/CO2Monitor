@@ -56,6 +56,7 @@ void publishConfiguration() {
         ESP_LOGE("getConfig", "Error creating config JSON");
         return;
     }
+    // Add config
     for (auto it = CONFIG_VARS.begin(); it != CONFIG_VARS.end(); it++) {
         cJSON *t = NULL;
         if (it->second.var != NULL) {
@@ -69,6 +70,14 @@ void publishConfiguration() {
         }
         cJSON_AddItemToObject(config, it->first, t);
     }
+    // Add version
+    std::string ct = App.get_compilation_time();
+    std::string v = ct.substr(7, 4) + ct.substr(0, 3) + ct.substr(4, 2) +
+        ct.substr(13, 2) + ct.substr(16, 2) + ct.substr(19, 2) + "-[esphome" ESPHOME_VERSION "]";
+    ESP_LOGD("getConfig", "App Version is %s", v.c_str());
+    cJSON_AddItemToObject(config, "appVersion", cJSON_CreateString(v.c_str()));
+
+    // Serialize
     char *configStr = cJSON_Print(config);
     if (configStr == NULL)
     {
@@ -79,7 +88,7 @@ void publishConfiguration() {
     if (!id(mqttclient).publish(topic, configStr, strlen(configStr), 0, false)) {
         ESP_LOGE("getConfig", "Error publishing config");
     }
-    ESP_LOGI("getConfig", "Published config to %s: %s", topic, configStr);
+    ESP_LOGD("getConfig", "Published config to %s: %s", topic, configStr);
 }
 
 // Provisioning handler
