@@ -69,6 +69,9 @@ esp32_improv:
   authorizer: boot
   status_indicator: blue_led
 
+co2improv:
+  id: improvMgr
+
 logger:
   level: DEBUG
 
@@ -102,6 +105,11 @@ binary_sensor:
     id: boot
     internal: true
     on_click:
+      - min_length: 2s
+        max_length: 5s
+        then:
+          - lambda: |-
+              improvMgr->startImprov();
       - min_length: 5s
         max_length: 20s
         then:
