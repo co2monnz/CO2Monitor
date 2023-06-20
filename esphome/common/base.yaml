@@ -10,7 +10,6 @@ esphome:
   on_boot:
     then:
       - lambda: !lambda FirmwareInfo();
-      - output.turn_off: blue_led
       - delay: 0.1s
       - light.control:
             id: leds
@@ -38,6 +37,9 @@ esphome:
             state: off
       - lambda: |-
           mqttSetup();
+  on_loop:
+    then:
+      - lambda: !lambda id(lcd_leds).set_wifi(id(wifi2).is_connected());
 
 globals:
   - id: node_id
@@ -67,7 +69,6 @@ wifi:
 esp32_improv:
   id: improvConf
   authorizer: improvMgr
-  status_indicator: blue_led
 
 co2improv:
   id: improvMgr
@@ -114,14 +115,6 @@ binary_sensor:
         then:
           - switch.turn_on: reset
 
-output:
-  - platform: gpio
-    id: blue_led
-    pin:
-      number: GPIO2
-      mode:
-        output: true
-
 sensor:
   - platform: scd4x
     id: scd40
@@ -130,49 +123,17 @@ sensor:
       name: "CO2"
       id: co2
       on_value:
-        - if:
-            condition:
-              sensor.in_range:
-                  id: co2
-                  below: 800
-            then:
-              - light.control:
-                  id: leds
-                  state: on
-                  red: 0
-                  green: 1
-                  blue: 0
-        - if:
-            condition:
-              sensor.in_range:
-                id: co2
-                above: 800
-                below: 1000
-            then:
-              - light.control:
-                    id: leds
-                    state: on
-                    red: 1
-                    green: 0.7
-                    blue: 0
-        - if:
-            condition:
-              sensor.in_range:
-                id: co2
-                above: 1000
-            then:
-              - light.control:
-                    id: leds
-                    state: on
-                    red: 1
-                    green: 0
-                    blue: 0
+        - lambda: id(lcd_leds)->set_co2(x);
     temperature:
       name: "Temperature"
       id: temperature
+      on_value:
+        - lambda: id(lcd_leds)->set_temperature(x);
     humidity:
       name: "Humidity"
       id: humidity
+      on_value:
+        - lambda: id(lcd_leds)->set_humidity(x);
 
 light:
 - platform: custom
@@ -200,17 +161,19 @@ font:
     size: 10
 
 display:
-  - platform: ssd1306_i2c
+  - platform: co2display
     model: "SSD1306 128x64"
-    address: 0x3C
-    brightness: 100%
+    id: lcd_leds
     rotation: "${display_rotation}"
-    id: display1
-    lambda: |-
-      if (id(wifi2).is_connected()) {
-        it.printf(0, 0, id(roboto), "W");
-      }  else {
-        it.printf(0, 0, id(roboto), "-");
-      }
-      it.printf(50,15, id(roboto30), "%.0f", id(co2).state);
-      it.printf(0, 50, id(roboto10), "temp:  %.1f   hum: %.0f%%", id(temperature).state, id(humidity).state);
+    led_id: leds
+    font_id: roboto
+    font10_id: roboto10
+    font30_id: roboto30
+    threshold_green_id: co2Green
+    threshold_orange_id: co2Orange
+    threshold_red_id: co2Red
+
+# Unused but required for dependency mgmt, so we can import it in co2display :(
+qr_code:
+  id: qr
+  value: ""

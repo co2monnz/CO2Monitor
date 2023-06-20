@@ -2,6 +2,7 @@
 #include "esphome/core/component.h"
 #include "esphome/core/log.h"
 #include "esphome/components/binary_sensor/binary_sensor.h"
+#include "esphome/components/co2display/co2display.h"
 #include "esphome/components/esp32_ble/ble.h"
 #include "esphome/components/esp32_improv/esp32_improv_component.h"
 #include "esphome/components/wifi/wifi_component.h"
@@ -58,12 +59,16 @@ public:
   void set_state(bool s) {
     inImprov = s;
     this->publish_state(inImprov);
+    if (this->display != NULL) {
+      this->display->set_improv(inImprov);
+    }
     if (inImprov) {
       improvStart = esp_timer_get_time();
     }
   }
 
   void set_wifi(wifi::WiFiComponent *w) { wc = w; }
+  void set_display(co2mon::Co2Display *d) { display = d; }
 
   void startImprov() {
     if (esp32_ble::global_ble == NULL) {
@@ -91,6 +96,7 @@ private:
   bool inImprov;
   int64_t improvStart;
   wifi::WiFiComponent *wc;
+  co2mon::Co2Display *display;
 };
 
 }  // namespace co2mon

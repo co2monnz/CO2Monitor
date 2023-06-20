@@ -1,6 +1,7 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import binary_sensor
+from esphome.components.co2display import display
 from esphome.components import wifi
 from esphome.const import CONF_ID
 
@@ -10,10 +11,12 @@ co2_improv_ns = cg.esphome_ns.namespace('co2mon')
 Co2Improv = co2_improv_ns.class_('Co2Improv', binary_sensor.BinarySensor, cg.Component)
 
 CONF_WIFI_ID = "wifi_id"
+CONF_DISPLAY_ID = "display_id"
 
 CONFIG_SCHEMA = cv.Schema({
     cv.GenerateID(): cv.declare_id(Co2Improv),
     cv.GenerateID(CONF_WIFI_ID): cv.use_id(wifi.WiFiComponent),
+    cv.GenerateID(CONF_DISPLAY_ID): cv.use_id(display.Co2Display),
 }).extend(cv.COMPONENT_SCHEMA)
 
 async def to_code(config):
@@ -22,3 +25,5 @@ async def to_code(config):
 
     wifi = await cg.get_variable(config[CONF_WIFI_ID])
     cg.add(var.set_wifi(wifi))
+    d = await cg.get_variable(config[CONF_DISPLAY_ID])
+    cg.add(var.set_display(d))
