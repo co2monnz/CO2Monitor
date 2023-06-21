@@ -64,6 +64,7 @@ public:
     this->co2Orange = tO;
     this->co2Red = tR;
   }
+  void set_wifi_icon(display::Image *i) { this->wifi_icon = i; }
 
 protected:
 
@@ -112,9 +113,7 @@ protected:
 
   void write_co2(DisplayBuffer &it) {
       if (wifi) {
-          it.printf(0, 0, this->font, "W");
-      }  else {
-          it.printf(0, 0, this->font, "-");
+          it.image(110, 0, this->wifi_icon);
       }
       it.printf(50,15, this->font30, "%.0f", this->co2);
       it.printf(0, 50, this->font10, "temp:  %.1f   hum: %.0f%%", this->temperature, this->humidity);
@@ -138,6 +137,7 @@ private:
   globals::RestoringGlobalsComponent<int> *co2Green;
   globals::RestoringGlobalsComponent<int> *co2Orange;
   globals::RestoringGlobalsComponent<int> *co2Red;
+  display::Image *wifi_icon;
 };
 
 }  // namespace co2mon

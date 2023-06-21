@@ -1,6 +1,6 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.components import font
+from esphome.components import font, image
 from esphome.components import globals
 from esphome.components import light
 from esphome.components import ssd1306_base, i2c
@@ -21,6 +21,7 @@ CONF_F30_ID = "font30_id"
 CONF_THOLD_G_ID = "threshold_green_id"
 CONF_THOLD_O_ID = "threshold_orange_id"
 CONF_THOLD_R_ID = "threshold_red_id"
+CONF_WIFI_ICON_ID = "wifi_icon"
 
 CONFIG_SCHEMA = cv.All(
     ssd1306_base.SSD1306_SCHEMA.extend(
@@ -34,6 +35,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Required(CONF_THOLD_G_ID): cv.use_id(globals.GlobalsComponent),
             cv.Required(CONF_THOLD_O_ID): cv.use_id(globals.GlobalsComponent),
             cv.Required(CONF_THOLD_R_ID): cv.use_id(globals.GlobalsComponent),
+            cv.Required(CONF_WIFI_ICON_ID): cv.use_id(image.Image_),
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
@@ -56,3 +58,5 @@ async def to_code(config):
     tO = await cg.get_variable(config[CONF_THOLD_O_ID])
     tR = await cg.get_variable(config[CONF_THOLD_R_ID])
     cg.add(var.set_thresholds(tG, tO, tR))
+    wI = await cg.get_variable(config[CONF_WIFI_ICON_ID])
+    cg.add(var.set_wifi_icon(wI))

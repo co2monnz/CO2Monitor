@@ -160,6 +160,11 @@ font:
     id: roboto10
     size: 10
 
+image:
+  - file: "img/wifi.png"
+    id: wifi_icon
+    resize: 15x15
+
 display:
   - platform: co2display
     model: "SSD1306 128x64"
@@ -172,6 +177,7 @@ display:
     threshold_green_id: co2Green
     threshold_orange_id: co2Orange
     threshold_red_id: co2Red
+    wifi_icon: wifi_icon
 
 # Unused but required for dependency mgmt, so we can import it in co2display :(
 qr_code:
