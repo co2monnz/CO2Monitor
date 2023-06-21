@@ -36,7 +36,7 @@ esphome:
             id: leds
             state: off
       - lambda: |-
-          mqttSetup();
+          mqttSetup("${mqtt_env}");
   on_loop:
     then:
       - lambda: !lambda id(lcd_leds).set_wifi(id(wifi2).is_connected());
@@ -81,7 +81,7 @@ mdns:
 
 mqtt:
   id: mqttclient
-  broker: mqtt-dev.co2mon.nz
+  broker: "${mqtt_host}"
   username: co2monitor
   password: co2monitor
   discovery: false

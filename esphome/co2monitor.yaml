@@ -3,6 +3,8 @@ substitutions:
   name: co2monitor
   display_rotation: "0"
   log_level: DEBUG
+  mqtt_host: mqtt-dev.co2mon.nz
+  mqtt_env: co2monitor-dev
 
 packages:
   base: !include common/base.yaml

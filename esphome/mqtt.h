@@ -45,11 +45,12 @@ void setGlobal(globals::RestoringGlobalsComponent<int> *var, int value) {
     // but we don't do that here, to allow multiple values to be updated at once.
 }
 
+// Prefix to publish up to, populated by mqttSetup
+char publishPrefix[64];
+
 void publishConfiguration() {
-    char idS[64];
-    sprintf(idS, "co2monitor-dev/%u", id(node_id));
     char topic[256];
-    sprintf(topic, "%s/up/config", idS);
+    sprintf(topic, "%s/config", publishPrefix);
     cJSON *config = cJSON_CreateObject();
     if (config == NULL)
     {
@@ -215,7 +216,7 @@ void mqttClearWiFi(const std::string &topic, const std::string &payload)
 }
 
 
-void mqttSetup() {
+void mqttSetup(const char *mqttEnv) {
     // Setup config var mapping.
     CONFIG_VARS.insert(std::make_pair("co2GreenThreshold", config_data{co2Green, NULL, NULL}));
     CONFIG_VARS.insert(std::make_pair("co2YellowThreshold", config_data{co2Orange, NULL, NULL}));
@@ -232,7 +233,7 @@ void mqttSetup() {
     }*/
     // Initialize MQTT listeners and publishers
     char idS[64];
-    sprintf(idS, "co2monitor-dev/%u", id(node_id));
+    sprintf(idS, "%s/%u", mqttEnv, id(node_id));
     id(mqttclient).set_topic_prefix(idS);
     char topic[256];
     // Provisioning handler
@@ -253,4 +254,7 @@ void mqttSetup() {
     sprintf(topic, "%s/down/clearWiFi", idS);
     id(mqttclient).subscribe(topic, mqttClearWiFi, 2);
     ESP_LOGD("mqtt", "Subscriptions setup");
+    // Prefix to publish to
+    sprintf(publishPrefix, "%s/%u/up", mqttEnv, id(node_id));
+
 }
