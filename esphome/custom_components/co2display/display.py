@@ -17,7 +17,7 @@ Co2Display = co2_display_ns.class_('Co2Display', display.I2CSSD1306)
 CONF_LEDS_ID = "led_id"
 CONF_F_ID = "font_id"
 CONF_F10_ID = "font10_id"
-CONF_F30_ID = "font30_id"
+CONF_F37_ID = "font37_id"
 CONF_THOLD_G_ID = "threshold_green_id"
 CONF_THOLD_O_ID = "threshold_orange_id"
 CONF_THOLD_R_ID = "threshold_red_id"
@@ -30,7 +30,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_LEDS_ID): cv.use_id(light.AddressableLightState),
             cv.Required(CONF_F_ID): cv.use_id(font.Font),
             cv.Required(CONF_F10_ID): cv.use_id(font.Font),
-            cv.Required(CONF_F30_ID): cv.use_id(font.Font),
+            cv.Required(CONF_F37_ID): cv.use_id(font.Font),
             # Should be RestoringGlobalsComponent but globals/__init__.py:23 doesn't permit that!
             cv.Required(CONF_THOLD_G_ID): cv.use_id(globals.GlobalsComponent),
             cv.Required(CONF_THOLD_O_ID): cv.use_id(globals.GlobalsComponent),
@@ -52,8 +52,8 @@ async def to_code(config):
     cg.add(var.set_leds(leds))
     f = await cg.get_variable(config[CONF_F_ID])
     f10 = await cg.get_variable(config[CONF_F10_ID])
-    f30 = await cg.get_variable(config[CONF_F30_ID])
-    cg.add(var.set_fonts(f, f10, f30))
+    f37 = await cg.get_variable(config[CONF_F37_ID])
+    cg.add(var.set_fonts(f, f10, f37))
     tG = await cg.get_variable(config[CONF_THOLD_G_ID])
     tO = await cg.get_variable(config[CONF_THOLD_O_ID])
     tR = await cg.get_variable(config[CONF_THOLD_R_ID])

@@ -58,7 +58,7 @@ public:
     }
   }
   void set_leds(light::AddressableLightState *l) { leds = l; }
-  void set_fonts(display::Font *f, display::Font *f10, display::Font *f30) { this->font = f; this->font10 = f10; this->font30 = f30; }
+  void set_fonts(display::Font *f, display::Font *f10, display::Font *f30) { this->font = f; this->font10 = f10; this->font37 = f30; }
   void set_thresholds(globals::RestoringGlobalsComponent<int> *tG, globals::RestoringGlobalsComponent<int> *tO, globals::RestoringGlobalsComponent<int> *tR) {
     this->co2Green = tG;
     this->co2Orange = tO;
@@ -115,8 +115,9 @@ protected:
       if (wifi) {
           it.image(110, 0, this->wifi_icon);
       }
-      it.printf(50,15, this->font30, "%.0f", this->co2);
-      it.printf(0, 50, this->font10, "temp:  %.1f   hum: %.0f%%", this->temperature, this->humidity);
+      it.printf(64, 32, this->font37, display::TextAlign::CENTER, "%.0f", this->co2);
+      it.printf(0, 53, this->font10, "temp:  %.1f", this->temperature);
+      it.printf(128, 53, this->font10, display::TextAlign::RIGHT, "hum: %.0f%%", this->humidity);
   }
 private:
 
@@ -133,7 +134,7 @@ private:
 
   display::Font *font;
   display::Font *font10;
-  display::Font *font30;
+  display::Font *font37;
   globals::RestoringGlobalsComponent<int> *co2Green;
   globals::RestoringGlobalsComponent<int> *co2Orange;
   globals::RestoringGlobalsComponent<int> *co2Red;

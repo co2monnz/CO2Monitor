@@ -151,14 +151,15 @@ light:
 
 font:
   - file: "fonts/Roboto-Regular.ttf"
-    id: roboto
-    size: 15
-  - file: "fonts/Roboto-Regular.ttf"
-    id: roboto30
-    size: 30
-  - file: "fonts/Roboto-Regular.ttf"
     id: roboto10
     size: 10
+  - file: "fonts/Roboto-Regular.ttf"
+    id: roboto
+    size: 15
+  - file: "fonts/Roboto-Black.ttf"
+    id: roboto37
+    size: 37
+
 
 image:
   - file: "img/wifi.png"
@@ -173,7 +174,7 @@ display:
     led_id: leds
     font_id: roboto
     font10_id: roboto10
-    font30_id: roboto30
+    font37_id: roboto37
     threshold_green_id: co2Green
     threshold_orange_id: co2Orange
     threshold_red_id: co2Red
