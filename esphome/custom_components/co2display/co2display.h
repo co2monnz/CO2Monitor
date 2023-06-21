@@ -74,6 +74,7 @@ protected:
     }
     auto action = leds->make_call();
     action.set_save(false);
+    action.set_color_mode(light::ColorMode::RGB);
     if (brightness != -1.0f) {
       action.set_brightness(brightness);
     }
