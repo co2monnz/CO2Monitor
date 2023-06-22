@@ -115,26 +115,6 @@ binary_sensor:
         then:
           - switch.turn_on: reset
 
-sensor:
-  - platform: scd4x
-    id: scd40
-    update_interval: "15s"
-    co2:
-      name: "CO2"
-      id: co2
-      on_value:
-        - lambda: id(lcd_leds)->set_co2(x);
-    temperature:
-      name: "Temperature"
-      id: temperature
-      on_value:
-        - lambda: id(lcd_leds)->set_temperature(x);
-    humidity:
-      name: "Humidity"
-      id: humidity
-      on_value:
-        - lambda: id(lcd_leds)->set_humidity(x);
-
 light:
 - platform: custom
   lambda: |-
