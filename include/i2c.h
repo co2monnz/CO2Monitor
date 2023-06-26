@@ -13,6 +13,7 @@ namespace I2C {
 #define BME680_I2C_ADR 0x76
 
   void initI2C();
+  void findDevices();
 
   boolean takeMutex(TickType_t blockTime);
   void giveMutex();

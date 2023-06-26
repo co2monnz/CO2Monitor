@@ -1,5 +1,6 @@
 #include <housekeeping.h>
 #include <mqtt.h>
+#include <i2c.h>
 #include <ota.h>
 
 // Local logging tag
@@ -32,6 +33,7 @@ namespace housekeeping {
       Serial.flush();
       esp_restart();
     }
+    I2C::findDevices();
   }
 
   uint32_t getFreeRAM() {

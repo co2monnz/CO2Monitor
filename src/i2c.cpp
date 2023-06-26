@@ -56,6 +56,10 @@ namespace I2C {
       delay(1000);
       esp_restart();
     }
+    findDevices();
+  }
+
+  void findDevices() {
     if (!takeMutex(portMAX_DELAY)) {
       return;
     }
