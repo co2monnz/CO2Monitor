@@ -4,7 +4,6 @@ esphome:
   platformio_options:
     upload_speed: 921600
   includes:
-  - neopixel-idf.h
   - firmware-ota.h
   - mqtt.h
   on_boot:
@@ -115,19 +114,11 @@ binary_sensor:
         then:
           - switch.turn_on: reset
 
-light:
-- platform: custom
-  lambda: |-
-    auto np = new NeopixelIDF();
-    App.register_component(np);
-    return {np};
-
-  lights:
-    - name: "LEDs"
-      id: leds
-      default_transition_length: 0s
-      internal: true
-      restore_mode: "RESTORE_AND_OFF"
+neopixel-idf:
+  id: leds
+#  default_transition_length: 0s
+#  internal: true
+#  restore_mode: "RESTORE_AND_OFF"
 
 font:
   - file: "fonts/Roboto-Regular.ttf"
