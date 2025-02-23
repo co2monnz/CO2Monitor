@@ -20,7 +20,7 @@ static const char *STOP_TIMER = "co2improv::stop";
 void stopAdvertising() {
   ESP_LOGD(TAG, "Turning off BLE advertisements (aka improv)!");
   if (esp32_ble::global_ble != NULL) {
-    esp32_ble::global_ble->get_advertising()->stop();
+    esp32_ble::global_ble->disable();
   }
 }
 
@@ -70,7 +70,7 @@ public:
       wc->disable();
       // Start improv and BLE advertisements
       esp32_improv::global_improv_component->start();
-      esp32_ble::global_ble->get_advertising()->start();
+      esp32_ble::global_ble->enable();
     } else {
       // Stop BLE advertisements
       if (stop_delay != -1) {
