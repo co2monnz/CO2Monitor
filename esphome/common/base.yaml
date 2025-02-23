@@ -134,6 +134,8 @@ font:
 
 image:
   - file: "img/wifi.png"
+    type: "BINARY"
+    invert_alpha: true
     id: wifi_icon
     resize: 15x15
 
