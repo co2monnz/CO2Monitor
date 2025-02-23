@@ -234,7 +234,8 @@ void mqttSetup(const char *mqttEnv) {
     // Initialize MQTT listeners and publishers
     char idS[64];
     sprintf(idS, "%s/%u", mqttEnv, id(node_id));
-    id(mqttclient).set_topic_prefix(idS);
+    id(mqttclient).set_topic_prefix(idS, idS);
+
     char topic[256];
     // Provisioning handler
     sprintf(topic, "%s/down/setNodeId", idS);
