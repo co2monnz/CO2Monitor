@@ -144,6 +144,7 @@ display:
     model: "SSD1306 128x64"
     id: lcd_leds
     rotation: "${display_rotation}"
+    auto_clear_enabled: true
     led_id: leds
     font_id: roboto
     font10_id: roboto10
