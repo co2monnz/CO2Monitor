@@ -8,7 +8,7 @@ from esphome.components.ssd1306_base import _validate
 from esphome.components.ssd1306_i2c import display
 from esphome.const import CONF_ID
 
-AUTO_LOAD = ["ssd1306_base", "ssd1306_i2c", "qr_code"]
+AUTO_LOAD = ["ssd1306_base", "ssd1306_i2c", "qr_code", "light", "font", "image"]
 DEPENDENCIES = ["i2c"]
 
 co2_display_ns = cg.esphome_ns.namespace('co2mon')

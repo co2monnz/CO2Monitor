@@ -4,7 +4,9 @@
 #include "esphome/core/component.h"
 #include "esphome/core/log.h"
 #include "esphome/components/display/display_buffer.h"
+#include "esphome/components/font/font.h"
 #include "esphome/components/globals/globals_component.h"
+#include "esphome/components/image/image.h"
 #include "esphome/components/light/addressable_light.h"
 #include "esphome/components/qr_code/qr_code.h"
 #include "esphome/components/ssd1306_i2c/ssd1306_i2c.h"
@@ -24,7 +26,7 @@ public:
   void setup() {
     // Create a closure to capture our writer method and pass it down for the
     // base DisplayBuffer class to use as it's writer.
-    this->set_writer([this] (display::DisplayBuffer &it) -> void { this->writer(it); });
+    this->set_writer([this](display::Display &it) -> void { this->writer(static_cast<display::DisplayBuffer &>(it)); });
 
     ssd1306_i2c::I2CSSD1306::setup();
   }
@@ -58,13 +60,13 @@ public:
     }
   }
   void set_leds(light::AddressableLightState *l) { leds = l; }
-  void set_fonts(display::Font *f, display::Font *f10, display::Font *f30) { this->font = f; this->font10 = f10; this->font37 = f30; }
+  void set_fonts(font::Font *f, font::Font *f10, font::Font *f30) { this->font = f; this->font10 = f10; this->font37 = f30; }
   void set_thresholds(globals::RestoringGlobalsComponent<int> *tG, globals::RestoringGlobalsComponent<int> *tO, globals::RestoringGlobalsComponent<int> *tR) {
     this->co2Green = tG;
     this->co2Orange = tO;
     this->co2Red = tR;
   }
-  void set_wifi_icon(display::Image *i) { this->wifi_icon = i; }
+  void set_wifi_icon(image::Image *i) { this->wifi_icon = i; }
 
 protected:
 
@@ -133,13 +135,13 @@ private:
 
   qr_code::QrCode *qr;
 
-  display::Font *font;
-  display::Font *font10;
-  display::Font *font37;
+  font::Font *font;
+  font::Font *font10;
+  font::Font *font37;
   globals::RestoringGlobalsComponent<int> *co2Green;
   globals::RestoringGlobalsComponent<int> *co2Orange;
   globals::RestoringGlobalsComponent<int> *co2Red;
-  display::Image *wifi_icon;
+  image::Image *wifi_icon;
 };
 
 }  // namespace co2mon
