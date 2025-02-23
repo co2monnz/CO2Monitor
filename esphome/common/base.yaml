@@ -74,6 +74,9 @@ co2improv:
 
 logger:
   level: "${log_level}"
+  logs:
+    # https://github.com/esphome/issues/issues/4717
+    component: ERROR
 
 mdns:
   disabled: true
