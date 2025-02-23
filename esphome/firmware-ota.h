@@ -47,12 +47,17 @@ void UpgradeFirmware(const char *url) {
         esp_task_wdt_init(60, false);
     #endif
 
-    esp_http_client_config_t config = {
+    esp_http_client_config_t http_config = {
         .url = url,
         .cert_pem = cacertpem,
         .transport_type = HTTP_TRANSPORT_OVER_SSL,
     };
-    esp_err_t ret = esp_https_ota(&config);
+
+    esp_https_ota_config_t ota_config = {
+        .http_config = &http_config,
+    };
+
+    esp_err_t ret = esp_https_ota(&ota_config);
     ESP_LOGI("ota", "Starting firmware update");
     if (ret == ESP_OK) {
         esp_restart();
