@@ -215,6 +215,24 @@ void mqttClearWiFi(const std::string &topic, const std::string &payload)
     id(wifi2).enable();
 }
 
+// Calibration handler
+void mqttSetCalibration(const std::string &topic, const std::string &payload)
+{
+    ESP_LOGD("mqttSetCalibration", "Got new calibration value: %s", payload.c_str());
+    int newValue = atoi(payload.c_str());
+    if (newValue < 420 || newValue > 1000)
+    {
+        ESP_LOGW("mqttSetCalibration", "Ignoring invalid calibration value: %d", newValue);
+        return;
+    }
+    if (id(scd40).perform_forced_calibration(newValue)) {
+        ESP_LOGI("mqttSetCalibration", "SCD40 calibrated to %d.", newValue);
+    } else {
+        ESP_LOGE("mqttSetCalibration", "Failed to calibrate SCD40 to %d.", newValue);
+    }
+}
+
+
 
 void mqttSetup(const char *mqttEnv) {
     // Setup config var mapping.
@@ -243,6 +261,9 @@ void mqttSetup(const char *mqttEnv) {
     // OTA handler
     sprintf(topic, "%s/down/ota", idS);
     id(mqttclient).subscribe(topic, mqttOTA, 2);
+    // Calibration handler
+    sprintf(topic, "%s/down/calibrate", idS);
+    id(mqttclient).subscribe(topic, mqttSetCalibration, 2);
     // Config handler
     sprintf(topic, "%s/down/setConfig", idS);
     id(mqttclient).subscribe(topic, mqttSetConfig, 2);
