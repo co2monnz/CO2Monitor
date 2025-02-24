@@ -64,6 +64,8 @@ globals:
 
 wifi:
   id: wifi2
+  ap:
+    password: co2monitor
 
 captive_portal:
   id: portal
@@ -112,8 +114,7 @@ binary_sensor:
     id: boot
     internal: true
     on_click:
-      - min_length: 100ms
-        max_length: 5s
+      - max_length: 1s
         then:
           - lambda: |-
               improvMgr->toggleImprov();

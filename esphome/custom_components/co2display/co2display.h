@@ -86,7 +86,7 @@ protected:
         action.set_rgb(0.0f, 0.0f, 1.0f);
     } else if (inAP) {
         action.set_state(true);
-        action.set_rgb(0.25f, 0.5f, 0.25f);
+        action.set_rgb(0.25f, 0.5f, 0.0f);
     } else if (this->co2 < co2Green->value()) {
         action.set_state(false);
     } else if (this->co2 < co2Orange->value()) {

@@ -49,9 +49,14 @@ public:
       }
     } else if (inAP) {
       // Check if AP is still needed
-      if (wc->has_sta()) {
+      if (provRunningSeconds() <= 2) {
+        return;
+      }
+      auto ssid = wc->get_sta().get_ssid();
+      if (ssid != "" && !ssid.starts_with("co2monitor") && wc->is_connected()) {
         ESP_LOGD(TAG, "STA connected, disabling AP!");
         set_state(false, false);
+        return;
       }
     }
   }
@@ -89,12 +94,12 @@ public:
     // Enable or disable AP as required.
     if (inAP) {
       if (wc->is_connected() && wc->has_sta()) {
+        wc->save_wifi_sta("", "");
         wc->clear_sta();
-        wc->disable();
       }
       if (!wc->has_ap() || wc->is_disabled()) {
-        // wait just a couple of loops before starting the AP in case disable was called above.
-        this->set_timeout(STOP_TIMER, 200, [this]() { this->startAP(); });
+        // wait a second before restarting the WiFi with an AP to let the disable/clear above work.
+        this->set_timeout(STOP_TIMER, 1000, [this]() { this->startAP(); });
       }
     } else {
       // Turn off captive portal
@@ -104,11 +109,11 @@ public:
         captive_portal::global_captive_portal = nullptr;
       }
       // Only way to get rid of the AP is reboot!
-      if (wc->has_ap()) {
+      /*if (wc->has_ap()) {
         ESP_LOGD(TAG, "Rebooting to turn off config AP!");
-        // Wait a second before doing so in case log messages want to go out.
+        // Wait a little bit before doing so in case log messages want to go out.
         this->set_timeout(STOP_TIMER, 2000, [this]() { esp_restart(); });
-      }
+      }*/
     }
   }
 
@@ -175,6 +180,9 @@ private:
 
   // Returns time in seconds since prov started.
   int64_t provRunningSeconds() {
+    if (provStart == 0) {
+      return 0;
+    }
     int64_t now = esp_timer_get_time();
     return (now - provStart) / USEC_SEC;
   }
@@ -182,12 +190,16 @@ private:
   void startAP() {
     ESP_LOGD(TAG, "Turning on config AP and captive portal!");
     captive_portal::global_captive_portal = portal;
-    if (!wc->has_ap()) {
+    /*if (!wc->has_ap()) {
       wifi::WiFiAP ap = wifi::WiFiAP();
+      ap.set_ssid("co2monitor");
       ap.set_password("co2monitor");
       wc->set_ap(ap);
-    }
+      ESP_LOGD(TAG, "AP set");
+    }*/
     wc->enable();
+    ESP_LOGD(TAG, "Wifi enabled!");
+    provStart = esp_timer_get_time();
   }
 };
 
