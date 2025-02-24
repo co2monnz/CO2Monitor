@@ -65,12 +65,16 @@ globals:
 wifi:
   id: wifi2
 
+captive_portal:
+  id: portal
+
 esp32_improv:
   id: improvConf
   authorizer: improvMgr
 
-co2improv:
+co2prov:
   id: improvMgr
+  portal_id: portal
 
 logger:
   level: "${log_level}"
@@ -108,11 +112,17 @@ binary_sensor:
     id: boot
     internal: true
     on_click:
-      - max_length: 5s
+      - min_length: 100ms
+        max_length: 5s
         then:
           - lambda: |-
-              improvMgr->startImprov();
-      - min_length: 5s
+              improvMgr->toggleImprov();
+      - min_length: 2s
+        max_length: 5s
+        then:
+          - lambda: |-
+              improvMgr->toggleAP();
+      - min_length: 10s
         max_length: 20s
         then:
           - switch.turn_on: reset

@@ -38,22 +38,23 @@ public:
   void set_temperature(float v) { this->temperature = v; }
   void set_humidity(float v) { this->humidity = v; }
   void set_wifi(bool v) { this->wifi = v; }
-  void set_improv(bool v) {
-    if (v == this->improv) {
+  void set_improv(bool enableImprov, bool enableAP) {
+    if (enableImprov == this->inImprov && enableAP == this->inAP) {
       return;
     }
-    this->improv = v;
-    // Prep for showing QR code, and dim the LEDs to improve scannability.
-    if (this->improv) {
+    this->inImprov = enableImprov;
+    this->inAP = enableAP;
+    // Prep for showing QR code, and dim the LEDs to inImprove scannability.
+    if (this->inImprov) {
       this->oldBrightness = this->leds->current_values.get_brightness();
-      ESP_LOGD(LOGTAG, "Stored %.1f as pre improv brightness", this->oldBrightness);
+      ESP_LOGD(LOGTAG, "Stored %.1f as pre inImprov brightness", this->oldBrightness);
       this->updateLeds(0.4);
       // Prep a QR code
       this->qr = new qr_code::QrCode();
       this->qr->set_value(SETUP_URL);
       this->qr->set_ecc(::qrcodegen_Ecc_LOW);
     } else {
-      ESP_LOGD(LOGTAG, "Restoring %.1f as pre improv brightness", this->oldBrightness);
+      ESP_LOGD(LOGTAG, "Restoring %.1f as pre inImprov brightness", this->oldBrightness);
       this->updateLeds(this->oldBrightness);
       free(this->qr);
       this->qr = NULL;
@@ -80,9 +81,12 @@ protected:
     if (brightness != -1.0f) {
       action.set_brightness(brightness);
     }
-    if (improv) {
+    if (inImprov) {
         action.set_state(true);
         action.set_rgb(0.0f, 0.0f, 1.0f);
+    } else if (inAP) {
+        action.set_state(true);
+        action.set_rgb(0.25f, 0.5f, 0.25f);
     } else if (this->co2 < co2Green->value()) {
         action.set_state(false);
     } else if (this->co2 < co2Orange->value()) {
@@ -99,10 +103,14 @@ protected:
   }
 
   void writer(display::DisplayBuffer &it) {
-    if (improv) {
+    if (inImprov) {
         this->write_improv(it);
+    } else if (inAP) {
+      it.printf(0, 0, this->font10, "AP");
+      it.printf(0, 30, this->font10, "WiFi");
+      it.printf(98, 30, this->font10, "Setup");
     } else {
-        this->write_co2(it);
+      this->write_co2(it);
     }
   }
   void write_improv(DisplayBuffer &it) {
@@ -128,9 +136,10 @@ private:
   float temperature;
   float humidity;
   bool wifi;
-  bool improv;
+  bool inImprov;
+  bool inAP;
   light::AddressableLightState *leds;
-  // cached LED brightness before improv mode changes it.
+  // cached LED brightness before inImprov mode changes it.
   float oldBrightness;
 
   qr_code::QrCode *qr;

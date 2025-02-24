@@ -16,6 +16,7 @@ esp32:
     version: recommended
     sdkconfig_options:
       CONFIG_BT_BLE_42_FEATURES_SUPPORTED: y
+      CONFIG_ESP_NETIF_ENABLED: y
 
 i2c:
   scl: GPIO22
